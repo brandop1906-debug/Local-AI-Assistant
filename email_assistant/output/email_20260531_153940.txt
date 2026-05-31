@@ -1,0 +1,23 @@
+**Subject:** Follow-Up: Pending Invoice #[Invoice Number]
+
+Dear [Client Name],
+
+I hope this message finds you well. I am writing to kindly follow up on the status of Invoice #[Invoice Number], which was issued on [Invoice Date] for the total amount of [Amount]. Our records indicate that payment has not yet been received.
+
+Please let us know if you require a revised copy of the invoice, have any questions regarding the charges, or need additional documentation to facilitate the payment process. For your convenience, the payment details are provided below:
+
+• Payment Method: [e.g., Bank Transfer / Credit Card / Online Portal]
+• Account/Reference Details: [Insert details or link]
+• Due Date: [Insert due date, if applicable]
+
+We truly value our business relationship and appreciate your prompt attention to this matter. Should you have already processed this payment, please disregard this message and accept our sincere thanks.
+
+Thank you for your time and cooperation. I remain at your disposal should you require any further assistance.
+
+Sincerely,
+
+[Your Full Name]  
+[Your Title]  
+[Your Company Name]  
+[Your Contact Information]  
+[Company Website]

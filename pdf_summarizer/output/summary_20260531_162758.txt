@@ -1,0 +1,30 @@
+Here is a detailed summary of the warehouse pull sheet, organized by key operational categories:
+
+**Company & Contact Information**
+- **Provider:** Snyder Event Rental Co.
+- **Location:** 3875 Meeting St., N. Charleston, SC 29405
+- **Phone:** (843) 766-3366
+
+**Order & Client Details**
+- **Order Number:** 338459-15
+- **Client:** Linda Freeman
+- **Salesperson:** AD
+- **Order Date:** August 26, 2025
+
+**Event Schedule & Logistics Timeline**
+- **Event Day:** Saturday
+- **Event Date:** May 2, 2026
+- **Event Time:** 16:00 (4:00 PM)
+- **Delivery Date:** April 29, 2026 (3 days prior to the event)
+- **Pickup Date:** May 3, 2026 (1 day after the event)
+
+**Shipping & Billing Information**
+- **Ship To:** Kersey House (specific address not provided on sheet)
+- **Bill To:** 28 Sothel Ave, Charleston, SC 29407
+
+**Contact Protocol**
+- **Event Day Contact:** Lauren (explicit instruction: "CALL ON WAY!")
+- **Event Date Contact:** None listed
+
+**Special Instructions & Security**
+- **Note:** "SECURED WITH CCRA" (ind

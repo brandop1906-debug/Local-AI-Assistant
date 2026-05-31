@@ -1,0 +1,7 @@
+Here is a concise summary of the warehouse pull sheet:
+
+- **Order & Client Details:** Order #338459-15 (PO #C) for client Linda Freeman, originally placed on August 26, 2025.
+- **Event Information:** Scheduled for Saturday, May 2, 2026, at 4:00 PM. Contact person is Lauren (to be called upon arrival).
+- **Logistics & Addresses:** Delivery on April 29, 2026; pickup on May 3, 2026. Items ship to Kersey House and are billed to 28 Sothel Ave, Charleston, SC.
+- **Order Contents:** Consists of 1 line item totaling 1 unit.
+- **Special Instructions & Status:** Secured with CCRA. Pull sheet sign-off section remains blank.
