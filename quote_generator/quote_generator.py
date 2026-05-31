@@ -4,12 +4,12 @@ quote_generator.py
 A local, offline service quote generator powered by LM Studio.
 
 This script:
-  1. Asks you to describe the services you need a quote for
+  1. Collects service details via a rich GUI (categories, customer info, pricing)
   2. Loads a base quote template from /templates
   3. Combines the template with your description
   4. Sends the combined prompt to LM Studio's local server
   5. Displays the polished, formatted service quote
-  6. Saves the quote to /output with a timestamped filename
+  6. Saves the quote to /output (TXT or PDF) with a timestamped filename
 
 No cloud APIs required. Everything runs on your machine.
 
@@ -17,6 +17,7 @@ Requirements:
   - Python 3.6+
   - LM Studio installed and running: https://lmstudio.ai
   - A model loaded in LM Studio with the Local Server started
+  - fpdf2 (pip install fpdf2) — for PDF export
 
 Usage:
   python quote_generator.py
@@ -27,8 +28,9 @@ import os
 import sys
 import json
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+from tkinter import ttk, scrolledtext, messagebox, simpledialog
 from datetime import datetime
+from io import BytesIO
 
 # ---------------------------------------------------------------------------
 # Force UTF-8 encoding on Windows so characters display correctly
@@ -159,23 +161,95 @@ def print_banner() -> None:
     print()
 
 
-def save_quote(content: str) -> str:
+def save_quote(content: str, fmt: str = "txt") -> str:
     """
     Save the quote content to /output with a timestamped filename.
 
     Args:
         content: The quote text to save.
+        fmt:     Output format — 'txt' or 'pdf'.
 
     Returns:
         The full path to the saved file.
     """
     ensure_dir(OUTPUT_DIR)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"quote_{timestamp}.txt"
-    filepath = os.path.join(OUTPUT_DIR, filename)
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(content)
+
+    if fmt == "pdf":
+        try:
+            from fpdf import FPDF
+        except ImportError:
+            raise RuntimeError(
+                "fpdf2 is required for PDF export.\n"
+                "Install it with: pip install fpdf2"
+            )
+        filepath = os.path.join(OUTPUT_DIR, f"quote_{timestamp}.pdf")
+        _save_as_pdf(content, filepath)
+    else:
+        filepath = os.path.join(OUTPUT_DIR, f"quote_{timestamp}.txt")
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content)
+
     return filepath
+
+
+def _save_as_pdf(content: str, filepath: str) -> None:
+    """Render text content to a PDF using fpdf2."""
+    from fpdf import FPDF
+    from fpdf.enums import XPos, YPos
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+
+    # Title
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.cell(0, 12, "Service Quote", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    pdf.ln(4)
+
+    # Separator
+    pdf.set_draw_color(0, 102, 153)
+    pdf.set_line_width(0.5)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(6)
+
+    # Body text (split by newlines, apply basic formatting)
+    pdf.set_font("Helvetica", "", 10.5)
+    lines = content.splitlines()
+    for line in lines:
+        # Detect bold-like markers
+        if line.startswith("**") and line.endswith("**"):
+            pdf.set_font("Helvetica", "B", 10.5)
+            line = line.strip("*")
+        elif line.startswith("**"):
+            pdf.set_font("Helvetica", "B", 10.5)
+            # Find where bold ends
+            end = line.find("**")
+            if end > 0:
+                pdf.cell(0, 5.5, line[:end], new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_font("Helvetica", "", 10.5)
+                pdf.cell(0, 5.5, line[end + 2:], new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                continue
+        else:
+            pdf.set_font("Helvetica", "", 10.5)
+
+        # Skip blank lines but add spacing
+        if not line.strip():
+            pdf.ln(3)
+            continue
+
+        # Use multi_cell for wrapping long lines
+        pdf.multi_cell(0, 5.5, line)
+        pdf.ln(0.5)
+
+    # Footer
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(128, 128, 128)
+    pdf.cell(0, 5, f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  |  Powered by LM Studio",
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+
+    pdf.output(filepath)
 
 
 def call_lm_studio(prompt: str) -> str:
@@ -304,6 +378,155 @@ def check_lm_studio() -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Pricing Calculator (inline table)
+# ---------------------------------------------------------------------------
+
+
+class PricingCalculator(ttk.Frame):
+    """Inline pricing table with add/remove rows and auto-totals."""
+
+    def __init__(self, master: tk.Widget, **kwargs):
+        super().__init__(master, **kwargs)
+
+        # Column headers
+        headers = ["#", "Description", "Qty", "Unit Price ($)", "Total ($)", ""]
+        col_widths = [25, 160, 40, 80, 80, 25]
+
+        for i, (hdr, w) in enumerate(zip(headers, col_widths)):
+            lbl = ttk.Label(self, text=hdr, font=("Segoe UI", 9, "bold"))
+            lbl.grid(row=0, column=i, padx=(2 if i else 0), pady=3, sticky="ew")
+
+        # Configure column weights for resizing
+        self.columnconfigure(1, weight=1)
+
+        # List to track row widgets
+        self._rows: list[dict] = []
+        # Row counter
+        self._row_count = 0
+
+        # Totals frame
+        self._totals_frame = ttk.Frame(self)
+        self._totals_frame.grid(row=1, column=0, columnspan=6, pady=(5, 2), sticky="ew")
+
+        self.subtotal_var = tk.StringVar(value="Subtotal: $0.00")
+        self.tax_var = tk.StringVar(value="Tax (10%): $0.00")
+        self.total_var = tk.StringVar(value="Total: $0.00")
+
+        ttk.Label(self._totals_frame, textvariable=self.subtotal_var,
+                  font=("Segoe UI", 9)).grid(row=0, column=0, padx=(0, 20), sticky="e")
+        ttk.Label(self._totals_frame, textvariable=self.tax_var,
+                  font=("Segoe UI", 9)).grid(row=0, column=1, padx=(0, 20), sticky="e")
+        ttk.Label(self._totals_frame, textvariable=self.total_var,
+                  font=("Segoe UI", 10, "bold"), foreground="#006699").grid(row=0, column=2, sticky="e")
+
+        # Add row button
+        self.add_btn = ttk.Button(self, text="+ Add Line Item", command=self._add_row)
+        self.add_btn.grid(row=2, column=0, columnspan=6, pady=(3, 0))
+
+    def _add_row(self) -> None:
+        """Add a new pricing row."""
+        self._row_count += 1
+        row = self._row_count
+
+        # Description
+        desc_var = tk.StringVar()
+        ttk.Entry(self, textvariable=desc_var, width=22).grid(row=row, column=1, padx=2, pady=2, sticky="ew")
+
+        # Quantity
+        qty_var = tk.StringVar(value="1")
+        qty_spin = ttk.Spinbox(self, from_=1, to=999, textvariable=qty_var, width=5)
+        qty_spin.grid(row=row, column=2, padx=2, pady=2)
+
+        # Unit price
+        price_var = tk.StringVar(value="0.00")
+        ttk.Entry(self, textvariable=price_var, width=10).grid(row=row, column=3, padx=2, pady=2)
+
+        # Total (read-only)
+        total_var = tk.StringVar(value="$0.00")
+        ttk.Label(self, textvariable=total_var, anchor="e", width=10, font=("Consolas", 9)).grid(
+            row=row, column=4, padx=2, pady=2
+        )
+
+        # Remove button
+        remove_btn = ttk.Button(self, text="✕", width=3,
+                                command=lambda r=row: self._remove_row(r))
+        remove_btn.grid(row=row, column=5, padx=2, pady=2)
+
+        # Bind variable updates to recalculate
+        qty_var.trace_add("write", lambda *_: self._recalculate())
+        price_var.trace_add("write", lambda *_: self._recalculate())
+
+        self._rows.append({"row": row, "desc": desc_var, "qty": qty_var, "price": price_var, "total": total_var})
+        self._recalculate()
+
+    def _remove_row(self, row: int) -> None:
+        """Remove a pricing row."""
+        info = next((r for r in self._rows if r["row"] == row), None)
+        if not info:
+            return
+        # Clear grid
+        for col in range(6):
+            widgets = self.grid_slaves(row=row, column=col)
+            for w in widgets:
+                w.grid_forget()
+                w.destroy()
+        self._rows = [r for r in self._rows if r["row"] != row]
+        self._recalculate()
+
+    def _recalculate(self) -> None:
+        """Recalculate all row totals and the grand total."""
+        subtotal = 0.0
+        for info in self._rows:
+            try:
+                qty = float(info["qty"].get() or "0")
+                price = float(info["price"].get() or "0")
+            except ValueError:
+                qty, price = 0, 0
+            total = qty * price
+            info["total"].set(f"${total:,.2f}")
+            subtotal += total
+
+        tax = subtotal * 0.10  # 10% default tax
+        grand = subtotal + tax
+
+        self.subtotal_var.set(f"Subtotal: ${subtotal:,.2f}")
+        self.tax_var.set(f"Tax (10%): ${tax:,.2f}")
+        self.total_var.set(f"Total: ${grand:,.2f}")
+
+    def get_items(self) -> list[dict]:
+        """Return a list of pricing items from all rows."""
+        items = []
+        for info in self._rows:
+            desc = info["qty"].master.master.nametowidget(info["qty"].master.grid_info()["column"])
+            # Simpler: just get the text directly
+            entry_widgets = info["qty"].master.grid_slaves(column=1)
+            desc_entry = entry_widgets[0] if entry_widgets else None
+            desc_text = desc_entry.get() if desc_entry else ""
+            try:
+                qty = float(info["qty"].get() or "0")
+                price = float(info["price"].get() or "0")
+            except ValueError:
+                continue
+            if desc_text.strip():
+                items.append({"description": desc_text, "qty": qty, "price": price, "total": qty * price})
+        return items
+
+    def get_items_simple(self) -> list[dict]:
+        """Return a list of pricing items."""
+        items = []
+        for info in self._rows:
+            desc_text = info["desc"].get()
+            try:
+                qty = float(info["qty"].get() or "0")
+                price = float(info["price"].get() or "0")
+            except ValueError:
+                continue
+            if desc_text.strip():
+                items.append({"description": desc_text, "qty": qty, "price": price, "total": qty * price})
+        return items
+
+
+# ---------------------------------------------------------------------------
 # Tkinter GUI
 # ---------------------------------------------------------------------------
 
@@ -311,11 +534,30 @@ def check_lm_studio() -> bool:
 class QuoteGeneratorGUI:
     """Tkinter-based GUI for the service quote generator."""
 
+    SERVICE_CATEGORIES = [
+        "Electrical Services",
+        "Plumbing Services",
+        "HVAC Services",
+        "Carpentry / Woodworking",
+        "Painting Services",
+        "Landscaping / Lawn Care",
+        "Cleaning Services",
+        "Moving / Relocation",
+        "IT / Computer Repair",
+        "Auto Repair / Maintenance",
+        "Roofing Services",
+        "Drywall / Drywall Repair",
+        "Window / Door Installation",
+        "Appliance Repair",
+        "General Handyman",
+        "Other",
+    ]
+
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("Service Quote Generator (LM Studio)")
-        self.root.geometry("750x650")
-        self.root.minsize(550, 500)
+        self.root.geometry("850x750")
+        self.root.minsize(600, 550)
         self._build_ui()
 
         # Check LM Studio on startup
@@ -328,7 +570,7 @@ class QuoteGeneratorGUI:
     def _build_ui(self) -> None:
         """Construct the GUI layout."""
         # ---- Main frame with padding ----
-        main_frame = ttk.Frame(self.root, padding=20)
+        main_frame = ttk.Frame(self.root, padding=15)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # ---- Title ----
@@ -337,28 +579,73 @@ class QuoteGeneratorGUI:
             text="📋  Service Quote Generator",
             font=("Segoe UI", 16, "bold"),
         )
-        title_label.pack(pady=(0, 10))
+        title_label.pack(pady=(0, 5))
 
         # ---- Subtitle / instructions ----
         subtitle = ttk.Label(
             main_frame,
-            text="Describe the services you need a quote for, then click Generate.",
+            text="Fill in the details below, then click Generate to create a professional quote.",
             font=("Segoe UI", 9),
             foreground="gray",
         )
-        subtitle.pack(pady=(0, 15))
+        subtitle.pack(pady=(0, 10))
 
-        # ---- Services description (text box) ----
-        desc_label = ttk.Label(main_frame, text="Services / Project Description:")
-        desc_label.pack(anchor=tk.W)
+        # ====================================================================
+        # SECTION 1: Service Category Dropdown
+        # ====================================================================
+        cat_frame = ttk.LabelFrame(main_frame, text="Service Category", padding=10)
+        cat_frame.pack(fill=tk.X, pady=(0, 8))
+
+        ttk.Label(cat_frame, text="Category:").pack(side=tk.LEFT, padx=(0, 10))
+        self.category_var = tk.StringVar(value=self.SERVICE_CATEGORIES[0])
+        self.category_combo = ttk.Combobox(
+            cat_frame,
+            textvariable=self.category_var,
+            values=self.SERVICE_CATEGORIES,
+            state="readonly",
+            width=40,
+        )
+        self.category_combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # ====================================================================
+        # SECTION 2: Customer Information (optional)
+        # ====================================================================
+        cust_frame = ttk.LabelFrame(main_frame, text="Customer Information (optional)", padding=10)
+        cust_frame.pack(fill=tk.X, pady=(0, 8))
+
+        # Row 1: Name + Phone
+        row1 = ttk.Frame(cust_frame)
+        row1.pack(fill=tk.X, pady=(0, 4))
+
+        ttk.Label(row1, text="Customer Name:").pack(side=tk.LEFT, padx=(0, 5))
+        self.customer_name_var = tk.StringVar()
+        ttk.Entry(row1, textvariable=self.customer_name_var, width=25).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+
+        ttk.Label(row1, text="Phone:").pack(side=tk.LEFT, padx=(0, 5))
+        self.customer_phone_var = tk.StringVar()
+        ttk.Entry(row1, textvariable=self.customer_phone_var, width=15).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # Row 2: Address
+        row2 = ttk.Frame(cust_frame)
+        row2.pack(fill=tk.X)
+
+        ttk.Label(row2, text="Address:").pack(side=tk.LEFT, padx=(0, 5))
+        self.customer_address_var = tk.StringVar()
+        ttk.Entry(row2, textvariable=self.customer_address_var, width=55).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # ====================================================================
+        # SECTION 3: Services Description
+        # ====================================================================
+        desc_frame = ttk.LabelFrame(main_frame, text="Services / Project Description", padding=10)
+        desc_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 8))
 
         self.desc_text = scrolledtext.ScrolledText(
-            main_frame,
-            height=7,
+            desc_frame,
+            height=5,
             font=("Consolas", 10),
             wrap=tk.WORD,
         )
-        self.desc_text.pack(fill=tk.X, pady=(2, 10))
+        self.desc_text.pack(fill=tk.BOTH, expand=True)
         self.desc_text.insert(
             tk.END,
             "e.g., Home office electrical wiring for a 12x10 room, "
@@ -367,42 +654,85 @@ class QuoteGeneratorGUI:
         )
         self.desc_text.bind("<FocusIn>", self._on_desc_focus_in)
 
-        # ---- Generate button ----
+        # ====================================================================
+        # SECTION 4: Pricing Calculator
+        # ====================================================================
+        price_frame = ttk.LabelFrame(main_frame, text="Pricing Calculator (optional)", padding=10)
+        price_frame.pack(fill=tk.X, pady=(0, 8))
+
+        # Make the frame resizable by wrapping in a canvas for scrolling
+        price_canvas = tk.Canvas(price_frame, highlightthickness=0)
+        price_scroll = ttk.Scrollbar(price_frame, orient="vertical", command=price_canvas.yview)
+        self.pricing_scrollable = ttk.Frame(price_canvas)
+        self.pricing_scrollable.bind("<Configure>", lambda e: price_canvas.configure(scrollregion=price_canvas.bbox("all")))
+        price_canvas.create_window((0, 0), window=self.pricing_scrollable, anchor="nw")
+        price_canvas.configure(yscrollcommand=price_scroll.set)
+
+        price_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        price_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Build the pricing calculator inside the scrollable frame
+        self.pricing_calc = PricingCalculator(self.pricing_scrollable)
+        self.pricing_calc.pack(fill=tk.BOTH, expand=True)
+
+        # ====================================================================
+        # SECTION 5: Generate button
+        # ====================================================================
         self.generate_btn = ttk.Button(
             main_frame,
             text="⚡ Generate Quote",
             command=self._generate,
         )
-        self.generate_btn.pack(pady=(5, 10))
+        self.generate_btn.pack(pady=(5, 8))
 
-        # ---- Result area ----
+        # ====================================================================
+        # SECTION 6: Result area
+        # ====================================================================
         result_frame = ttk.LabelFrame(main_frame, text="Generated Quote", padding=10)
-        result_frame.pack(fill=tk.BOTH, expand=True, pady=(5, 10))
+        result_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
 
         self.result_text = scrolledtext.ScrolledText(
             result_frame,
-            height=12,
+            height=10,
             font=("Consolas", 10),
             wrap=tk.WORD,
             state=tk.DISABLED,
         )
         self.result_text.pack(fill=tk.BOTH, expand=True)
 
-        # ---- Action buttons ----
+        # ====================================================================
+        # SECTION 7: Action buttons
+        # ====================================================================
         action_frame = ttk.Frame(main_frame)
         action_frame.pack(fill=tk.X)
 
         self.copy_btn = ttk.Button(
             action_frame,
-            text="📋 Copy to Clipboard",
+            text="📋 Copy",
             command=self._copy_to_clipboard,
             state=tk.DISABLED,
         )
-        self.copy_btn.pack(side=tk.LEFT, padx=(0, 5))
+        self.copy_btn.pack(side=tk.LEFT, padx=(0, 4))
+
+        self.save_txt_btn = ttk.Button(
+            action_frame,
+            text="💾 Save TXT",
+            command=lambda: self._save_quote("txt"),
+            state=tk.DISABLED,
+        )
+        self.save_txt_btn.pack(side=tk.LEFT, padx=(0, 4))
+
+        self.save_pdf_btn = ttk.Button(
+            action_frame,
+            text="📄 Save PDF",
+            command=lambda: self._save_quote("pdf"),
+            state=tk.DISABLED,
+        )
+        self.save_pdf_btn.pack(side=tk.LEFT, padx=(0, 4))
 
         self.open_btn = ttk.Button(
             action_frame,
-            text="📂 Open Output Folder",
+            text="📂 Open Folder",
             command=self._open_output_folder,
             state=tk.DISABLED,
         )
@@ -416,7 +746,7 @@ class QuoteGeneratorGUI:
             relief=tk.SUNKEN,
             anchor=tk.W,
         )
-        status_bar.pack(fill=tk.X, side=tk.BOTTOM)
+        status_bar.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
 
     def _on_desc_focus_in(self, event: tk.Event) -> None:
         """Clear placeholder text on focus."""
@@ -427,6 +757,69 @@ class QuoteGeneratorGUI:
         )
         if self.desc_text.get(1.0, tk.END).strip() == placeholder:
             self.desc_text.delete(1.0, tk.END)
+
+    def _build_prompt(self) -> str:
+        """Build the full prompt from all GUI inputs."""
+        category = self.category_var.get()
+        customer_name = self.customer_name_var.get().strip()
+        customer_phone = self.customer_phone_var.get().strip()
+        customer_address = self.customer_address_var.get().strip()
+        services_desc = self.desc_text.get(1.0, tk.END).strip()
+
+        # Gather pricing items
+        pricing_items = self.pricing_calc.get_items_simple()
+
+        # Build customer info section
+        customer_info_lines = []
+        if customer_name:
+            customer_info_lines.append(f"Customer Name: {customer_name}")
+        if customer_phone:
+            customer_info_lines.append(f"Phone: {customer_phone}")
+        if customer_address:
+            customer_info_lines.append(f"Address: {customer_address}")
+        customer_block = "\n".join(customer_info_lines) if customer_info_lines else "Customer information will be filled in upon acceptance."
+
+        # Build pricing section
+        pricing_block = ""
+        if pricing_items:
+            pricing_lines = ["Pricing Breakdown:"]
+            for i, item in enumerate(pricing_items, 1):
+                pricing_lines.append(
+                    f"  {i}. {item['description']}  |  Qty: {int(item['qty'])}  |  Unit: ${item['price']:,.2f}  |  Total: ${item['total']:,.2f}"
+                )
+            subtotal = sum(item["total"] for item in pricing_items)
+            tax = subtotal * 0.10
+            grand = subtotal + tax
+            pricing_lines.append(f"\n  Subtotal: ${subtotal:,.2f}")
+            pricing_lines.append(f"  Tax (10%):  ${tax:,.2f}")
+            pricing_lines.append(f"  **Total: ${grand:,.2f}**")
+            pricing_block = "\n".join(pricing_lines)
+
+        # Load template
+        template_text = load_template("quote_base")
+
+        # Build prompt
+        full_prompt = f"""{template_text}
+
+=== INPUT DATA ===
+
+Service Category: {category}
+
+{customer_block}
+
+Services / Project Description:
+{services_desc}
+
+{pricing_block}
+
+==================
+
+Please generate a complete, professional service quote based on the data above.
+Include all standard sections: Header, Client Info, Scope of Work, Pricing, Terms, Contact.
+Use the provided pricing data exactly as given. If the pricing section is empty, generate reasonable estimates.
+Format the quote as a clean, ready-to-use document.
+"""
+        return full_prompt
 
     def _generate(self) -> None:
         """Generate the quote based on user input."""
@@ -440,22 +833,14 @@ class QuoteGeneratorGUI:
         self.root.update()
 
         try:
-            # Load template
-            template_text = load_template("quote_base")
-
-            # Build prompt: template + user's service description
-            full_prompt = (
-                f"{template_text}\n\n"
-                f"Services / project description:\n{services_desc}\n\n"
-                f"Please generate a complete, professional service quote based on the description above.\n"
-                f"Include all standard sections: header, scope of work, pricing, terms, and contact info."
-            )
+            # Build prompt from all inputs
+            full_prompt = self._build_prompt()
 
             # Call LM Studio
             quote_content = call_lm_studio(full_prompt)
 
-            # Save to file
-            filepath = save_quote(quote_content)
+            # Save to file (TXT by default)
+            filepath = save_quote(quote_content, fmt="txt")
 
             # Display result
             self.result_text.config(state=tk.NORMAL)
@@ -464,6 +849,8 @@ class QuoteGeneratorGUI:
             self.result_text.config(state=tk.DISABLED)
 
             self.copy_btn.config(state=tk.NORMAL)
+            self.save_txt_btn.config(state=tk.NORMAL)
+            self.save_pdf_btn.config(state=tk.NORMAL)
             self.open_btn.config(state=tk.NORMAL)
             self.status_var.set(f"Done! Saved to: {filepath}")
 
@@ -478,6 +865,20 @@ class QuoteGeneratorGUI:
             messagebox.showerror("Unexpected Error", str(e))
         finally:
             self.generate_btn.config(state=tk.NORMAL)
+
+    def _save_quote(self, fmt: str) -> None:
+        """Save the current quote content to a file."""
+        quote_content = self.result_text.get(1.0, tk.END).strip()
+        if not quote_content:
+            messagebox.showwarning("Nothing to save", "No quote has been generated yet.")
+            return
+
+        try:
+            filepath = save_quote(quote_content, fmt=fmt)
+            self.status_var.set(f"Saved as {fmt.upper()}: {filepath}")
+            messagebox.showinfo("Saved", f"Quote saved as {fmt.upper()}!\n\n{filepath}")
+        except RuntimeError as e:
+            messagebox.showerror("Save Error", str(e))
 
     def _copy_to_clipboard(self) -> None:
         """Copy the generated quote to the clipboard."""

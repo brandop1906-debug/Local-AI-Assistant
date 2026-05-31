@@ -1,0 +1,4 @@
+# quote_generator dependencies
+# Core (no external deps required)
+# fpdf2 is optional — only needed for PDF export
+fpdf2>=2.0
