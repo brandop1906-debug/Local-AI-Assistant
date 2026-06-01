@@ -51,7 +51,8 @@ class ChatGUI:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Local AI Assistant")
-        self.root.geometry("700x500")
+        self.root.geometry("700x650")
+        self.root.minsize(400, 600)  # ensure bottom bar always visible
         self.root.configure(bg=self.BG_COLOR)
 
         # Flag to prevent double-submit while the model is responding
