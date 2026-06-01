@@ -16,7 +16,7 @@
         },
         {
             "name": "Business Brain Q&A",
-            "path": "business_brain/ask_brain.py"
+            "path": "business_brain/gui.py"
         }
     ]
 }
