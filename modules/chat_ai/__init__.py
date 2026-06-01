@@ -20,9 +20,9 @@ RAG (Retrieval-Augmented Generation):
     chunks = retrieve_context("What is the pricing structure?", top_k=5)
 """
 
-from chat_ai.chat import ask_ai
-from chat_ai.context import build_rag_context, inject_context
-from chat_ai.rag import semantic_search, retrieve_context, build_rag_context as rag_build_rag_context
+from .chat import ask_ai
+from .context import build_rag_context, inject_context
+from .rag import semantic_search, retrieve_context, build_rag_context as rag_build_rag_context
 
 __all__ = [
     "ask_ai",

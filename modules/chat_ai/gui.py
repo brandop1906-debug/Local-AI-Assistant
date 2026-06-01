@@ -1,7 +1,7 @@
 """
 chat_ai/gui.py
 ==============
-Tkinter GUI for the Local AI Assistant chat module.
+CustomTkinter GUI for the Local AI Assistant chat module.
 
 Displays a conversation log, accepts user input, and calls
 chat.ask_ai() to get responses from the local LM Studio model.
@@ -13,138 +13,116 @@ Run with:
 
 import sys
 import os
-import tkinter as tk
-from tkinter import scrolledtext, font as tkfont
+import customtkinter as ctk
 import threading
 
-# Ensure the parent directory (modules/) is on sys.path so imports work
-# regardless of whether we're launched from the project root or modules/
+# Ensure the parent directory (modules/) is on sys.path
 _MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 if os.path.dirname(_MODULE_DIR) not in sys.path:
     sys.path.insert(0, os.path.dirname(_MODULE_DIR))
 
-# Import the chat module
 from chat_ai.chat import ask_ai
+
+# Theme colors
+DARK_BG = "#0f1117"
+DARK_SURFACE = "#1a1d27"
+DARK_INPUT = "#161922"
+DARK_BORDER = "#2a2e3a"
+ACCENT = "#4a90d9"
+ACCENT_GLOW = "#4a90d930"
+WHITE = "#e8eaed"
+GRAY = "#8b8fa3"
+GREEN = "#4caf50"
+RED = "#e74c3c"
+YELLOW = "#f0a500"
+FONT_FAMILY = "Segoe UI"
 
 
 class ChatGUI:
-    """Simple Tkinter chat window backed by the local LM Studio model."""
+    """Modern CustomTkinter chat window backed by the local LM Studio model."""
 
-    # ------------------------------------------------------------------
-    # Colours & fonts
-    # ------------------------------------------------------------------
-    BG_COLOR = "#1e1e1e"
-    FG_COLOR = "#d4d4d4"
-    ENTRY_BG = "#2d2d2d"
-    ENTRY_FG = "#ffffff"
-    BUTTON_BG = "#0e639c"
-    BUTTON_FG = "#ffffff"
-    THINKING_FG = "#f0a500"
-
-    FONT_FAMILY = "Consolas"
-    FONT_SIZE = 12
-
-    # ------------------------------------------------------------------
-    # Construction
-    # ------------------------------------------------------------------
-
-    def __init__(self, root: tk.Tk):
+    def __init__(self, root: ctk.CTk):
         self.root = root
-        self.root.title("Local AI Assistant")
-        self.root.geometry("700x650")
-        self.root.minsize(400, 600)  # ensure bottom bar always visible
-        self.root.configure(bg=self.BG_COLOR)
+        self.root.title("Local AI Assistant — Chat")
+        self.root.geometry("750x700")
+        self.root.minsize(420, 600)
 
-        # Flag to prevent double-submit while the model is responding
+        # Dark theme
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("dark-blue")
+
         self._is_responding = False
-
         self._build_ui()
 
-    # ------------------------------------------------------------------
-    # UI layout
-    # ------------------------------------------------------------------
-
     def _build_ui(self):
-        """Create and pack every widget."""
+        self.root.configure(fg_color=DARK_BG)
 
-        # -- Chat history (scrolling text area) --------------------------------
-        self.chat_box = scrolledtext.ScrolledText(
+        # ---- Top accent bar ----
+        accent_bar = ctk.CTkFrame(self.root, fg_color=ACCENT, height=3)
+        accent_bar.pack(fill="x", side="top")
+        accent_bar.pack_propagate(False)
+
+        # ---- Chat history area ----
+        self.chat_frame = ctk.CTkScrollableFrame(
             self.root,
-            state="disabled",
-            wrap="word",
-            bg=self.BG_COLOR,
-            fg=self.FG_COLOR,
-            font=(self.FONT_FAMILY, self.FONT_SIZE),
-            insertbackground=self.FG_COLOR,
-            relief="flat",
+            fg_color=DARK_BG,
+            border_color=DARK_BG,
         )
-        self.chat_box.pack(fill="both", expand=True, padx=10, pady=10)
+        self.chat_frame.pack(fill="both", expand=True, padx=12, pady=12)
 
-        # -- Status label (shows "Thinking..." while model responds) -----------
-        self.status_label = tk.Label(
+        # ---- Status bar ----
+        self.status_label = ctk.CTkLabel(
             self.root,
             text="Ready",
-            anchor="w",
-            bg=self.BG_COLOR,
-            fg=self.THINKING_FG,
-            font=(self.FONT_FAMILY, 9),
+            font=(FONT_FAMILY, 10),
+            text_color=GRAY,
         )
-        self.status_label.pack(fill="x", padx=10, pady=(0, 2))
+        self.status_label.pack(fill="x", padx=12, pady=(0, 4))
 
-        # -- Bottom bar: entry + buttons --------------------------------------
-        bottom_frame = tk.Frame(self.root, bg=self.BG_COLOR)
-        bottom_frame.pack(fill="x", padx=10, pady=(2, 10))
+        # ---- Bottom input bar ----
+        self._build_input_bar()
 
-        self.entry = tk.Entry(
-            bottom_frame,
-            font=(self.FONT_FAMILY, self.FONT_SIZE),
-            bg=self.ENTRY_BG,
-            fg=self.ENTRY_FG,
-            insertbackground=self.FG_COLOR,
-            relief="flat",
+    def _build_input_bar(self):
+        input_frame = ctk.CTkFrame(
+            self.root,
+            fg_color=DARK_SURFACE,
+            corner_radius=16,
+            border_width=1,
+            border_color=DARK_BORDER,
         )
-        self.entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        input_frame.pack(fill="x", padx=12, pady=(0, 12))
+        input_frame.configure(height=56)
+        input_frame.pack_propagate(False)
+
+        self.entry = ctk.CTkEntry(
+            input_frame,
+            placeholder_text="Type a message...",
+            font=(FONT_FAMILY, 13),
+            text_color=WHITE,
+            placeholder_text_color=GRAY,
+            fg_color=DARK_INPUT,
+            corner_radius=12,
+            height=40,
+        )
+        self.entry.pack(side="left", fill="x", expand=True, padx=(12, 6), pady=8)
         self.entry.bind("<Return>", self._on_send)
 
-        # Send button
-        send_btn = tk.Button(
-            bottom_frame,
+        self.send_btn = ctk.CTkButton(
+            input_frame,
             text="Send",
+            font=(FONT_FAMILY, 12, "bold"),
+            fg_color=ACCENT,
+            hover_color="#5ba0e9",
+            text_color=WHITE,
+            corner_radius=12,
+            width=72,
+            height=40,
             command=self._on_send,
-            bg=self.BUTTON_BG,
-            fg=self.BUTTON_FG,
-            activebackground="#1177bb",
-            activeforeground=self.BUTTON_FG,
-            font=(self.FONT_FAMILY, 10, "bold"),
-            relief="flat",
-            padx=18,
-            pady=4,
         )
-        send_btn.pack(side="left")
-
-        # Clear button
-        clear_btn = tk.Button(
-            bottom_frame,
-            text="Clear Chat",
-            command=self._on_clear,
-            bg="#555555",
-            fg=self.BUTTON_FG,
-            activebackground="#777777",
-            activeforeground=self.BUTTON_FG,
-            font=(self.FONT_FAMILY, 10),
-            relief="flat",
-            padx=18,
-            pady=4,
-        )
-        clear_btn.pack(side="left", padx=(6, 0))
-
-    # ------------------------------------------------------------------
-    # Actions
-    # ------------------------------------------------------------------
+        self.send_btn.pack(side="right", padx=(0, 8), pady=8)
 
     def _on_send(self, _event=None):
         """Handle Send button click or Enter key press."""
-        # Ignore if already processing
         if self._is_responding:
             return
 
@@ -152,75 +130,111 @@ class ChatGUI:
         if not message:
             return
 
-        # Clear the entry field
-        self.entry.delete(0, tk.END)
+        self.entry.delete(0, "end")
+        self._append_message("You", message, is_user=True)
 
-        # Show the user's message in the chat
-        self._append(f"[You]   {message}")
-
-        # Lock the UI
         self._is_responding = True
-        self._set_status("Thinking...", fg=self.THINKING_FG)
-        self.entry.config(state="disabled")
-        send_btn = self.root.winfo_children()[-1].winfo_children()[0]
-        send_btn.config(state="disabled")
+        self._set_status("Thinking...", fg=YELLOW)
+        self.entry.configure(state="disabled")
+        self.send_btn.configure(state="disabled")
 
-        # Run ask_ai in a background thread so the GUI stays responsive
-        thread = threading.Thread(
-            target=self._handle_response, args=(message,), daemon=True
-        )
+        thread = threading.Thread(target=self._handle_response, args=(message,), daemon=True)
         thread.start()
 
     def _handle_response(self, user_message: str):
         """Background thread: call ask_ai() and update the GUI on return."""
+        response = None
+        error_msg = None
         try:
             response = ask_ai(user_message)
         except Exception as exc:
-            response = None
             error_msg = str(exc)
+            import traceback
+            traceback.print_exc()
 
-        # Schedule the update on the main (GUI) thread
-        self.root.after(0, self._finalize_response, response, error_msg if 'error_msg' in dir() else None)
+        self.root.after(0, self._finalize_response, response, error_msg)
 
     def _finalize_response(self, response: str | None, error_msg: str | None):
         """Restore UI state and display the result."""
         self._is_responding = False
-        self.entry.config(state="normal")
+        self.entry.configure(state="normal")
         self.entry.focus()
-
-        # Re-reference the send button (it may have been recreated)
-        bottom_frame = self.root.winfo_children()[-1]
-        send_btn = bottom_frame.winfo_children()[0]
-        send_btn.config(state="normal")
+        self.send_btn.configure(state="normal")
 
         if response is not None:
-            self._append(f"[AI]    {response}")
-            self._set_status("Ready", fg=self.FG_COLOR)
+            self._append_message("AI", response, is_user=False)
+            self._set_status("Ready", fg=GRAY)
         else:
-            self._append(f"[ERROR] {error_msg}")
-            self._set_status("Error", fg="#e74c3c")
+            display_msg = error_msg or "No response received. Is LM Studio running?"
+            self._append_message("Error", display_msg, is_user=False, is_error=True)
+            self._set_status("Error", fg=RED)
+
+    def _append_message(self, sender: str, text: str, is_user: bool = False, is_error: bool = False):
+        """Append a message bubble to the chat."""
+        is_error = is_error or sender == "Error"
+
+        # Sender label
+        sender_color = ACCENT if is_user else GREEN if sender == "AI" else RED
+        sender_label = ctk.CTkLabel(
+            self.chat_frame,
+            text=sender,
+            font=(FONT_FAMILY, 10, "bold"),
+            text_color=sender_color,
+            anchor="w",
+        )
+        sender_label.pack(fill="x", padx=4, pady=(8, 0))
+
+        # Message bubble
+        bg = DARK_INPUT if is_user else DARK_SURFACE
+        border = ACCENT if is_user else DARK_BORDER
+
+        bubble = ctk.CTkFrame(
+            self.chat_frame,
+            fg_color=bg,
+            border_width=1,
+            border_color=border,
+            corner_radius=14,
+        )
+        bubble.pack(fill="x", padx=4, pady=2)
+        bubble.configure(width=680)
+        bubble.update()
+
+        msg_label = ctk.CTkLabel(
+            bubble,
+            text=text,
+            font=(FONT_FAMILY, 12),
+            text_color=WHITE if not is_error else RED,
+            wraplength=640,
+            justify="left",
+            anchor="w",
+        )
+        msg_label.pack(fill="x", padx=14, pady=10)
+
+        # Auto-scroll to bottom
+        self._scroll_to_bottom()
+
+    def _scroll_to_bottom(self):
+        """Scroll the chat frame to the bottom."""
+        try:
+            # Try CTk 5.x path first
+            self.chat_frame.scrollable_frame.canvas.yview_moveto(1.0)
+        except AttributeError:
+            try:
+                # Try direct canvas access (older CTk versions)
+                self.chat_frame.canvas.yview_moveto(1.0)
+            except AttributeError:
+                pass  # Scroll not available, that's OK
+
+    def _set_status(self, text: str, fg: str = GRAY):
+        """Update the status label."""
+        self.status_label.configure(text=text, text_color=fg)
 
     def _on_clear(self):
         """Clear the conversation history."""
-        self.chat_box.config(state="normal")
-        self.chat_box.delete("1.0", tk.END)
-        self.chat_box.config(state="disabled")
-        self._set_status("Ready", fg=self.FG_COLOR)
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    def _append(self, text: str):
-        """Append *text* to the chat box and auto-scroll to the bottom."""
-        self.chat_box.config(state="normal")
-        self.chat_box.insert("end", text + "\n\n")
-        self.chat_box.see("end")  # auto-scroll
-        self.chat_box.config(state="disabled")
-
-    def _set_status(self, text: str, fg: str | None = None):
-        """Update the status label text and optionally its colour."""
-        self.status_label.config(text=text, fg=fg or self.FG_COLOR)
+        # Remove all child widgets from the chat frame
+        for child in self.chat_frame.winfo_children():
+            child.destroy()
+        self._set_status("Ready", fg=GRAY)
 
 
 # ---------------------------------------------------------------------------
@@ -228,6 +242,6 @@ class ChatGUI:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ctk.CTk()
     ChatGUI(root)
     root.mainloop()
