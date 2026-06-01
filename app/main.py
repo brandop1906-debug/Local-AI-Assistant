@@ -261,8 +261,8 @@ def api_brain_reindex():
     """Re-index the Business Brain documents."""
     try:
         sys.path.insert(0, os.path.join(PROJECT_DIR, "business_brain"))
-        import ask_brain
-        ask_brain.reindex(force=True)
+        from indexer import index_documents
+        index_documents(force_reindex=True)
         return {"status": "ok", "message": "Documents re-indexed successfully."}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
