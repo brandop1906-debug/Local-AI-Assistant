@@ -1,0 +1,7 @@
+{
+  "model": "qwen/qwen3.6-35b-a3b"
+  "documents_dir": "documents",
+  "index_file": "embeddings.json",
+  "top_k": 5,
+  "embedding_model": null
+}
