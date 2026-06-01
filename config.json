@@ -17,6 +17,10 @@
         {
             "name": "Business Brain Q&A",
             "path": "business_brain/gui.py"
+        },
+        {
+            "name": "Chat AI",
+            "path": "modules/chat_ai/gui.py"
         }
     ]
 }
