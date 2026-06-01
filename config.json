@@ -1,0 +1,22 @@
+{
+    "app_name": "Local AI Assistant",
+    "model": "qwen/qwen3.6-35b-a3b",
+    "modules": [
+        {
+            "name": "Email Assistant",
+            "path": "modules/email_assistant/email_assistant.py"
+        },
+        {
+            "name": "PDF Summarizer",
+            "path": "modules/pdf_summarizer/pdf_summarizer_gui.py"
+        },
+        {
+            "name": "Quote Generator",
+            "path": "modules/quote_generator/quote_generator.py"
+        },
+        {
+            "name": "Business Brain Q&A",
+            "path": "business_brain/ask_brain.py"
+        }
+    ]
+}
