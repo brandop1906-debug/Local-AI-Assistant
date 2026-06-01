@@ -8,13 +8,22 @@ chat.ask_ai() to get responses from the local LM Studio model.
 
 Run with:
     python gui.py
+    (or launch from launcher.py)
 """
 
+import sys
+import os
 import tkinter as tk
 from tkinter import scrolledtext, font as tkfont
 import threading
 
-# Import the chat module — assumes this file lives inside chat_ai/
+# Ensure the parent directory (modules/) is on sys.path so imports work
+# regardless of whether we're launched from the project root or modules/
+_MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.dirname(_MODULE_DIR) not in sys.path:
+    sys.path.insert(0, os.path.dirname(_MODULE_DIR))
+
+# Import the chat module
 from chat_ai.chat import ask_ai
 
 
