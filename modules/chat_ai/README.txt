@@ -1,49 +1,104 @@
-chat_ai module
-================
-Project-aware chat module for the Local AI Assistant.
+# chat_ai — Local AI Chat Module
 
-FEATURES
---------
-- Asks a local LLM (via LM Studio) and returns responses
-- Automatically injects project context (pricing, FAQs, modules, docs)
-- Tkinter GUI with "Thinking..." status indicator
-- CLI test mode for quick debugging
+A chat module for the Local AI Assistant that communicates with LM Studio's local API server — no cloud APIs required.
 
-USAGE
------
-1. As a module:
-   from chat_ai.chat import ask_ai
-   response = ask_ai("What is your pricing?")
+## Features
 
-2. As a CLI:
-   python chat.py "What is your pricing?"
+### RAG (Retrieval-Augmented Generation)
 
-3. As a GUI:
-   python gui.py
+Instead of dumping all documents into the prompt, `chat_ai` now uses **semantic search** to retrieve only the most relevant chunks for each query. This is much more efficient and scalable.
 
-PROJECT CONTEXT
----------------
-The chatbot now "knows" about your project because:
-- It reads your business_brain/documents/ files (FAQs, pricing, policies)
-- It scans the launcher config for all module names/paths
-- It includes README files from the project
+**How RAG works:**
 
-This means asking "What's your pricing?" will return accurate info
-from your service_pricing.txt file instead of a generic answer.
+1. User asks a question
+2. The question is embedded using the same model as `business_brain` (e.g. `nomic-embed-text`)
+3. Cosine similarity finds the top-K most relevant document chunks
+4. Only those chunks are injected into the system prompt
+5. The LLM answers using the retrieved context
 
-CONFIGURATION
--------------
-Edit modules/chat_ai/config.json:
-  - model: Which LM Studio model to use
-  - system_prompt: AI's personality/role
-  - temperature: Creativity (0.0-1.0)
-  - max_tokens: Max response length
-  - api_url: LM Studio server URL (default: localhost:1234)
+### Quick Start
 
-TROUBLESHOOTING
----------------
-- "ModuleNotFoundError": Run from the project root, not inside chat_ai/
-- Garbled text (e.g., "Iâ€™ll"): Ensure Windows terminal is UTF-8
-  (Run: chcp 65001 in cmd, or set PYTHONIOENCODING=utf-8)
-- "curl failed": Make sure LM Studio is running with a model loaded
-- Context too large: The builder automatically truncates to 8000 tokens
+```python
+from chat_ai import ask_ai
+
+# Simple chat
+response = ask_ai("What is the pricing structure?")
+print(response)
+
+# With context disabled (faster, no document retrieval)
+response = ask_ai("Hello!", include_context=False)
+```
+
+### GUI
+
+```bash
+python -m chat_ai.gui
+```
+
+### CLI Test
+
+```bash
+python -m chat_ai.chat "What is the pricing structure?"
+```
+
+## Configuration
+
+Edit `config.json`:
+
+```json
+{
+  "model": "qwen:7b",
+  "system_prompt": "You are a helpful business assistant.",
+  "temperature": 0.7,
+  "max_tokens": 2048,
+  "api_url": "http://localhost:1234/v1/chat/completions",
+  "rag_enabled": true,
+  "rag_top_k": 5,
+  "rag_max_context_chars": 6000
+}
+```
+
+### RAG Settings
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `rag_enabled` | `true` | Enable/disable RAG retrieval |
+| `rag_top_k` | `5` | Number of relevant chunks to retrieve |
+| `rag_max_context_chars` | `6000` | Max character budget for retrieved context |
+
+## Requirements
+
+- LM Studio running locally with an embedding model (e.g. `nomic-embed-text`) and a chat model (e.g. `qwen:7b`)
+- Python 3.10+
+
+## Architecture
+
+```
+┌──────────┐     ┌──────────────┐     ┌──────────────┐
+│  User    │────▶│   chat_ai    │────▶│  LM Studio   │
+│  Query   │     │  (RAG)       │     │  (Local LLM) │
+└──────────┘     └──────┬───────┘     └──────────────┘
+                         │
+                         ▼
+                  ┌──────────────┐
+                  │business_brain│
+                  │embeddings.json│
+                  └──────────────┘
+```
+
+1. `chat.py` receives the user query
+2. `rag.py` embeds the query and searches `business_brain/embeddings.json`
+3. Top-K relevant chunks are retrieved via cosine similarity
+4. `context.py` injects only those chunks into the system prompt
+5. The enriched prompt is sent to LM Studio
+6. The LLM answers using the retrieved context
+
+## Module Files
+
+| File | Purpose |
+|------|---------|
+| `chat.py` | Core ask_ai() function — sends messages to LM Studio |
+| `rag.py` | RAG retrieval — semantic search over business_brain index |
+| `context.py` | Context building and injection |
+| `gui.py` | Tkinter chat interface |
+| `config.json` | Configuration (model, temperature, RAG settings) |

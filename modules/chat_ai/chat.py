@@ -6,9 +6,10 @@ Local LLM chat module for the Local AI Assistant.
 Communicates with LM Studio's local API server (OpenAI-compatible)
 to send messages and receive responses — no cloud APIs required.
 
-Automatically injects project context (business docs, module info,
-pricing, FAQs) into every query so the chatbot "knows" about your
-project instead of answering from generic training data.
+Uses RAG (Retrieval-Augmented Generation) to dynamically retrieve only
+the most relevant document chunks for each query, instead of dumping
+all documents into the prompt. This makes the chatbot "know" about
+your project efficiently and scalably.
 
 Usage:
     from chat_ai.chat import ask_ai
@@ -24,7 +25,7 @@ import time
 from pathlib import Path
 
 # Import the context builder (same directory)
-from chat_ai.context import build_project_context, inject_context
+from chat_ai.context import build_rag_context, inject_context
 
 # ---------------------------------------------------------------------------
 # Configuration paths
@@ -138,7 +139,9 @@ def ask_ai(user_message: str, include_context: bool = True) -> str:
 
     # Step 2 — Build and inject project context (if enabled)
     if include_context:
-        context = build_project_context()
+        # Use RAG-aware context: only retrieve the most relevant chunks
+        # for this specific query, instead of dumping all documents
+        context = build_rag_context(user_message, top_k=5, max_context_chars=6000)
         system_message = inject_context(config["system_prompt"], context)
     else:
         system_message = None
