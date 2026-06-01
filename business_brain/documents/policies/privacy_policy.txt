@@ -1,0 +1,51 @@
+# Privacy Policy
+
+Last Updated: January 15, 2025
+
+## 1. Introduction
+
+Welcome to Local AI Assistant. We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our services.
+
+## 2. Information We Collect
+
+We collect the following types of information:
+
+- **Personal Information**: Name, email address, and phone number when you create an account.
+- **Usage Data**: Information about how you interact with our application, including search queries and document uploads.
+- **Device Information**: IP address, browser type, operating system, and device identifiers.
+- **Document Content**: Any documents you upload for indexing and processing. We process this content locally on your machine.
+
+## 3. How We Use Your Information
+
+Your information is used to:
+
+- Provide, maintain, and improve our services
+- Process and index your documents locally
+- Respond to your support requests
+- Send you service-related notifications
+- Ensure the security and integrity of our platform
+
+## 4. Data Storage and Security
+
+All your data is stored locally on your device. We do not send your documents or personal information to any external servers. The local AI models run entirely on your hardware.
+
+We implement the following security measures:
+
+- Local-only data storage
+- Encrypted file storage where supported
+- Regular security updates
+- No third-party data sharing
+
+## 5. Your Rights
+
+You have the right to:
+
+- Access your personal data at any time
+- Request correction of inaccurate data
+- Request deletion of your data
+- Export your data in a portable format
+- Withdraw consent at any time
+
+## 6. Contact
+
+For privacy-related inquiries, contact us at privacy@localaiassistant.com.

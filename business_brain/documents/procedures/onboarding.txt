@@ -1,0 +1,95 @@
+# Employee Onboarding Procedure
+
+Version: 3.2 | Effective: March 1, 2025
+
+## Overview
+
+This procedure outlines the steps for onboarding new employees at Local AI Assistant. The process typically spans the first two weeks of employment.
+
+## Pre-Arrival (3 Days Before Start Date)
+
+1. **IT Setup**
+   - Create email account and Slack workspace invitation
+   - Provision laptop and necessary software licenses
+   - Set up access to internal systems (GitHub, Jira, Confluence)
+   - Prepare security badges and building access
+
+2. **HR Preparation**
+   - Complete employment paperwork (W-4, I-9, direct deposit)
+   - Enroll in benefits packages
+   - Schedule orientation session
+   - Assign an onboarding buddy
+
+## Day 1 — Welcome Day
+
+### Morning (9:00 AM - 12:00 PM)
+- Welcome meeting with HR and team lead
+- Office tour and introductions to key team members
+- IT setup assistance and equipment handover
+- Review of company handbook and policies
+
+### Afternoon (1:00 PM - 5:00 PM)
+- Team lunch with your department
+- Introduction to core tools and systems
+- Review of role expectations and key performance indicators
+- Set up 30-60-90 day goals with your manager
+
+## Week 1 — Immersion
+
+### Daily Activities
+- Complete mandatory compliance training modules
+- Shadow team members on key workflows
+- Attend team standups and sprint planning sessions
+- Read key project documentation and architecture guides
+
+### Day 3 Check-in
+- One-on-one with your manager to address questions
+- Review initial goals and adjust as needed
+- Ensure all access and tools are working properly
+
+### Day 5 Check-in
+- Feedback session with your onboarding buddy
+- Review first week experience
+- Identify any blockers or additional support needed
+
+## Week 2 — Active Contribution
+
+### Activities
+- Begin contributing to actual projects with guidance
+- Attend cross-functional meetings relevant to your role
+- Complete any remaining training modules
+- Participate in your first sprint planning
+
+### Day 10 Check-in
+- Formal check-in with HR and manager
+- Review progress against 30-60-90 day goals
+- Provide onboarding experience feedback
+- Confirm benefits enrollment and any remaining paperwork
+
+## 30-60-90 Day Plan
+
+### 30 Days — Learning
+- Understand team processes and tools
+- Complete all mandatory training
+- Build relationships across the team
+- Ask questions and seek feedback
+
+### 60 Days — Contributing
+- Take ownership of small projects or tasks
+- Begin making independent decisions within scope
+- Identify areas for professional development
+- Provide constructive feedback to the team
+
+### 90 Days — Independent
+- Fully integrated into team workflows
+- Operating independently in core responsibilities
+- Identified and begun addressing development goals
+- Ready for formal performance review
+
+## Support Resources
+
+- **HR Contact**: hr@localaiassistant.com
+- **IT Help Desk**: ext. 4400 or helpdesk@localaiassistant.com
+- **Onboarding Buddy**: Assigned during pre-arrival
+- **Employee Handbook**: Available on the internal wiki
+- **Training Portal**: learning.localaiassistant.com

@@ -1,0 +1,53 @@
+# Frequently Asked Questions — Local AI Assistant
+
+## General Questions
+
+### What is Local AI Assistant?
+Local AI Assistant is a desktop application that indexes your business documents (policies, procedures, pricing, templates, and FAQs) and lets you search them using AI-powered semantic search. All processing happens locally on your machine — no data is sent to the cloud.
+
+### Is my data private and secure?
+Yes. All document processing, text extraction, and embedding generation happen entirely on your local device. We do not store, transmit, or access your documents on any external server. Your data stays on your machine.
+
+### What file types are supported?
+We currently support:
+- `.txt` — plain text files
+- `.pdf` — PDF documents (text-based)
+- `.docx` — Microsoft Word documents
+
+### What embedding models are available?
+The default is `nomic-embed-text`, which is free and runs locally. You can configure other embedding-capable models in the settings. The model must be available in LM Studio or Ollama.
+
+## Technical Questions
+
+### What are the system requirements?
+- **Operating System**: Windows 10/11, macOS 12+, or Linux
+- **RAM**: Minimum 8 GB (16 GB recommended)
+- **Storage**: 2 GB free for the application + model storage
+- **Internet**: Only needed for initial setup and model downloads
+- **GPU**: Optional — models can run on CPU
+
+### How does the search work?
+1. Your documents are split into ~500-token chunks
+2. Each chunk is converted to a vector embedding by a local AI model
+3. When you search, your query is also converted to an embedding
+4. The system calculates cosine similarity between your query and all chunks
+5. The most similar chunks are returned as results
+
+### How often should I re-index my documents?
+Run the indexer whenever you add, remove, or modify documents. The indexer uses file hashing to skip unchanged files, so re-indexing is fast even with large document sets.
+
+### Can I use this without LM Studio?
+You can use keyword-only search without any local server. However, for semantic (AI-powered) search, you need LM Studio running with an embedding model loaded.
+
+## Support Questions
+
+### How do I get help?
+- Email: support@localaiassistant.com
+- In-app: Help → Contact Support
+- Documentation: docs.localaiassistant.com
+
+### How do I uninstall?
+Simply delete the application folder. All your indexed data is stored in `embeddings.json` inside the application directory. You can keep this file to preserve your index if you reinstall.
+
+### Do you offer refunds?
+Yes. We offer a 30-day money-back guarantee on all plans. Contact support@localaiassistant.com for refund requests.

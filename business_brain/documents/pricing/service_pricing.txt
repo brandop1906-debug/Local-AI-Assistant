@@ -1,0 +1,58 @@
+# Service Pricing — Local AI Assistant
+
+Effective: April 1, 2025
+
+## Individual Plan
+
+**$19/month** or **$190/year** (save 17%)
+
+- Single user license
+- Up to 500 documents indexed
+- Local embedding model (nomic-embed-text)
+- Basic search and retrieval
+- Email support
+
+## Team Plan
+
+**$79/month** or **$790/year** (save 17%)
+
+- Up to 10 users
+- Up to 5,000 documents indexed
+- Choice of embedding models
+- Semantic and keyword search
+- Priority email support
+- Admin dashboard
+
+## Enterprise Plan
+
+**Custom Pricing**
+
+- Unlimited users
+- Unlimited documents
+- Custom embedding models
+- API access
+- Dedicated support engineer
+- SLA guarantees
+- On-premise deployment option
+- Custom integrations
+
+## Add-ons
+
+- **Additional Storage**: $10/month per 1,000 documents
+- **Premium Models**: $15/month for advanced embedding models
+- **API Access**: $25/month for programmatic search
+- **Custom Training**: Starting at $500 one-time fee
+
+## Payment Terms
+
+- All plans billed monthly or annually
+- 30-day money-back guarantee
+- Annual plans billed upfront
+- Volume discounts available for 50+ users
+
+## Refund Policy
+
+- New customers: Full refund within 30 days of purchase
+- Existing customers: Prorated refund for unused annual months
+- Enterprise: Negotiated terms per contract
+- No refunds for monthly payments used beyond 7 days

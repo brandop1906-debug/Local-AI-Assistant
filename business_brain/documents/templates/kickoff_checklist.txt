@@ -1,0 +1,58 @@
+# Project Kickoff Checklist
+
+**Project Name:** _______________
+**Project Manager:** _______________
+**Kickoff Date:** _______________
+
+## Pre-Kickoff
+
+- [ ] Project charter drafted and approved
+- [ ] Stakeholder list finalized
+- [ ] Core team members identified
+- [ ] Kickoff meeting scheduled (60-90 min)
+- [ ] Project space created (GitHub repo, wiki, etc.)
+- [ ] Initial timeline and milestones defined
+- [ ] Budget approved
+- [ ] Risk assessment completed
+
+## Kickoff Meeting Agenda
+
+### Part 1: Context (15 min)
+- Business problem and opportunity
+- Project goals and success criteria
+- Scope overview (what's in and out of scope)
+- Key stakeholders and their roles
+
+### Part 2: Team & Process (15 min)
+- Team structure and roles
+- Communication channels and cadence
+- Tooling and workflows
+- Decision-making process
+
+### Part 3: Planning (20 min)
+- Timeline and major milestones
+- Resource allocation
+- Dependencies and constraints
+- Initial risk register
+
+### Part 4: Q&A (10 min)
+- Open discussion
+- Clarification of expectations
+
+### Part 5: Next Steps (5 min)
+- Immediate action items
+- Next meeting scheduled
+- Contact for questions
+
+## Post-Kickoff
+
+- [ ] Meeting notes distributed within 24 hours
+- [ ] All team members have tool access
+- [ ] First sprint/work cycle begins
+- [ ] Stakeholder update sent
+- [ ] Project tracking initialized
+- [ ] Risk register updated with new risks
+
+---
+**Distributed by:** _______________
+**Date:** _______________

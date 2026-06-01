@@ -1,0 +1,47 @@
+# Meeting Template — Weekly Team Standup
+
+**Date:** _______________
+**Attendees:** _______________
+**Facilitator:** _______________
+
+## 1. Check-in (5 min)
+How is everyone doing? Quick round-robin: one word or short phrase.
+
+## 2. Review of Last Week (10 min)
+- What did we commit to last week?
+- What was completed?
+- What is still in progress?
+- Any blockers that need attention?
+
+## 3. This Week's Priorities (15 min)
+Top 3 priorities for the team this week:
+1. _________________________
+2. _________________________
+3. _________________________
+
+Individual updates:
+- [Name]: _________________________
+- [Name]: _________________________
+- [Name]: _________________________
+
+## 4. Blockers & Risks (5 min)
+- Any blockers that need escalation?
+- Any risks to upcoming deadlines?
+- Resources or decisions needed?
+
+## 5. Action Items (5 min)
+| Action | Owner | Due Date |
+|--------|-------|----------|
+|        |       |          |
+|        |       |          |
+|        |       |          |
+
+## 6. Wrap-up (5 min)
+- Any announcements or important reminders?
+- Next meeting date and time?
+
+---
+**Notes:**
+_________________________
+_________________________
+_________________________

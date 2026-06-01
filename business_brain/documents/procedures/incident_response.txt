@@ -1,0 +1,98 @@
+# IT Incident Response Procedure
+
+Version: 2.1 | Effective: January 1, 2025
+
+## 1. Purpose
+
+This procedure defines how Local AI Assistant responds to IT incidents, including security breaches, system outages, and data loss events.
+
+## 2. Incident Severity Levels
+
+### Severity 1 — Critical
+- Complete system outage affecting all users
+- Active security breach with data exfiltration confirmed
+- Financial or legal impact exceeding $100,000
+- **Response Time**: Immediate (within 15 minutes)
+
+### Severity 2 — High
+- Partial system outage affecting critical services
+- Suspected security incident requiring investigation
+- Customer data at risk but no confirmed breach
+- **Response Time**: Within 1 hour
+
+### Severity 3 — Medium
+- Non-critical system degradation
+- Isolated security events with limited impact
+- Internal tool outages affecting a single department
+- **Response Time**: Within 4 hours
+
+### Severity 4 — Low
+- Minor bugs or configuration issues
+- Single-user access problems
+- Non-urgent security advisories
+- **Response Time**: Within 24 hours
+
+## 3. Incident Response Steps
+
+### Step 1: Detection and Reporting
+- Any employee can report an incident via:
+  - Email: incidents@localaiassistant.com
+  - Slack: #incident-response channel
+  - Phone: IT emergency line ext. 9111
+
+### Step 2: Triage and Classification
+- Security team assesses severity level
+- Assigns incident commander
+- Determines initial containment strategy
+
+### Step 3: Containment
+- Isolate affected systems from the network
+- Preserve evidence and logs
+- Communicate status to stakeholders
+- Begin root cause analysis
+
+### Step 4: Eradication
+- Remove threat or fix vulnerability
+- Patch affected systems
+- Verify no remaining threat actors or backdoors
+
+### Step 5: Recovery
+- Restore systems from clean backups
+- Verify data integrity
+- Gradually return services to production
+- Monitor for recurrence
+
+### Step 6: Post-Incident Review
+- Conduct blameless post-mortem within 5 business days
+- Document timeline, root cause, and lessons learned
+- Create action items with owners and deadlines
+- Update procedures and defenses as needed
+
+## 4. Communication Protocol
+
+### Internal Communication
+- Status updates every 30 minutes for S1 incidents
+- Status updates every 2 hours for S2 incidents
+- Daily updates for S3 incidents
+- Weekly updates for S4 incidents
+
+### External Communication
+- Customer notifications handled by Customer Success
+- Legal team consulted for any data breach
+- PR team engaged for public-facing incidents
+- No external communication without executive approval
+
+## 5. Escalation Path
+
+1. On-call engineer (first responder)
+2. Senior security engineer
+3. IT Director
+4. CTO / VP of Engineering
+5. CEO (for S1 incidents with business impact)
+
+## 6. Recovery Time Objectives
+
+- Critical databases: RTO < 4 hours
+- Customer-facing services: RTO < 8 hours
+- Internal tools: RTO < 24 hours
+- Backup systems: RTO < 48 hours

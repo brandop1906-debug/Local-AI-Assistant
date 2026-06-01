@@ -1,42 +1,43 @@
 """
-GUI: A simple Tkinter interface for querying the business brain.
+gui.py — Simple Tkinter GUI for querying the Business Brain.
 """
 
 import os
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+from tkinter import ttk, scrolledtext, messagebox, filedialog
 
-from ask_brain import ask
+from ask_brain import ask, display_results
 
 
 def main():
     root = tk.Tk()
     root.title("Business Brain")
-    root.geometry("700x500")
+    root.geometry("800x550")
 
-    # Query input
+    # --- Top bar: query input ---
+    top_frame = ttk.Frame(root)
+    top_frame.pack(fill="x", padx=10, pady=8)
+
     query_var = tk.StringVar()
-    ttk.Label(root, text="Query:").pack(pady=(10, 2), anchor="w", padx=10)
-    ttk.Entry(root, textvariable=query_var, width=80).pack(padx=10, fill="x")
+    ttk.Label(top_frame, text="Query:").pack(side="left", padx=(0, 6))
+    ttk.Entry(top_frame, textvariable=query_var, width=55).pack(side="left", fill="x", expand=True, padx=(0, 6))
+
+    use_semantic = tk.BooleanVar(value=True)
+    ttk.Checkbutton(top_frame, text="Semantic (Ollama)", variable=use_semantic).pack(side="left", padx=(0, 6))
 
     def on_search():
         query = query_var.get().strip()
         if not query:
             messagebox.showwarning("No query", "Please enter a search term.")
             return
-        results = ask(query)
+        results = ask(query, use_semantic=use_semantic.get())
         results_text.delete(1.0, tk.END)
-        if not results:
-            results_text.insert(tk.END, "No results found.")
-            return
-        for relpath, score, content in results:
-            results_text.insert(tk.END, f"\n--- {relpath} (score: {score}) ---\n")
-            results_text.insert(tk.END, content[:500] + "\n")
+        display_results(results)
 
-    ttk.Button(root, text="Search", command=on_search).pack(pady=5)
+    ttk.Button(top_frame, text="Search", command=on_search).pack(side="left")
 
-    # Results
-    results_text = scrolledtext.ScrolledText(root, width=80, height=25, state="disabled")
+    # --- Results pane ---
+    results_text = scrolledtext.ScrolledText(root, width=90, height=25, state="disabled")
     results_text.pack(padx=10, pady=5, fill="both", expand=True)
 
     root.mainloop()

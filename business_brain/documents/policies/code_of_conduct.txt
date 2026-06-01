@@ -1,0 +1,69 @@
+# Employee Code of Conduct
+
+Last Updated: February 1, 2025
+
+## 1. Purpose
+
+This Code of Conduct establishes the standards of behavior expected of all employees, contractors, and representatives of Local AI Assistant. It reflects our core values and commitment to integrity, respect, and accountability.
+
+## 2. Core Values
+
+### Integrity
+We conduct business with the highest ethical standards. Honesty and transparency are expected in all interactions.
+
+### Respect
+We treat everyone with dignity and respect, regardless of position, background, or identity.
+
+### Accountability
+We take responsibility for our actions and decisions. We learn from mistakes and strive to improve.
+
+### Innovation
+We embrace creative thinking and continuous improvement in everything we do.
+
+## 3. Workplace Standards
+
+### Professional Behavior
+- Maintain professionalism in all communications and interactions
+- Resolve conflicts constructively and through appropriate channels
+- Avoid harassment, discrimination, or intimidation of any kind
+- Dress appropriately for the work environment
+
+### Confidentiality
+- Protect sensitive company and client information
+- Do not share internal documents without authorization
+- Follow data classification guidelines when handling information
+- Report any suspected data breaches immediately
+
+### Conflicts of Interest
+- Disclose any personal relationships that may create conflicts
+- Avoid outside employment that competes with the company
+- Decline gifts or favors that could influence business decisions
+- Report potential conflicts to your manager or HR
+
+## 4. Compliance
+
+All employees must comply with applicable laws and regulations, including:
+
+- Data protection and privacy laws
+- Labor and employment regulations
+- Industry-specific compliance requirements
+- Company policies and procedures
+
+## 5. Reporting Violations
+
+If you observe or experience a violation of this code:
+
+1. Report to your direct manager
+2. Contact HR at hr@localaiassistant.com
+3. Use the anonymous reporting hotline if preferred
+4. No retaliation will occur for good-faith reports
+
+## 6. Disciplinary Actions
+
+Violations may result in:
+
+- Verbal or written warning
+- Mandatory training
+- Suspension
+- Termination of employment
+- Legal action where applicable

@@ -1,7 +1,10 @@
 {
-  "model": "qwen/qwen3.6-35b-a3b"
+  "model": "qwen/qwen3.6-35b-a3b",
+  "embedding_model": "text-embedding-nomic-embed-text-v1.5",
+  "lm_studio_url": "http://localhost:1234",
   "documents_dir": "documents",
   "index_file": "embeddings.json",
   "top_k": 5,
-  "embedding_model": null
+  "chunk_size_tokens": 500,
+  "chunk_overlap_tokens": 50
 }
