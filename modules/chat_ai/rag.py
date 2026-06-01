@@ -31,7 +31,8 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 _MODULE_DIR = Path(__file__).resolve().parent
-_PROJECT_ROOT = _MODULE_DIR.parent
+# chat_ai is inside modules/, go up TWO levels to reach project root
+_PROJECT_ROOT = _MODULE_DIR.parent.parent
 _BRAIN_DIR = _PROJECT_ROOT / "business_brain"
 
 
