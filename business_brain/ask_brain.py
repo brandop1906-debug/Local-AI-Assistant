@@ -122,40 +122,130 @@ def semantic_search(query: str, index: dict, embedding_model: str, top_k: int = 
     return results[:top_k]
 
 
-def ask(query: str, index_path: str = None, use_semantic: bool = True) -> list:
-    """Main entry point: search the index for the given query."""
+def get_lm_studio_chat_url() -> str:
+    """Load LM Studio chat URL from config.json."""
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        return config.get("lm_studio_chat_url", None)
+    except Exception:
+        return None
+
+
+def get_llm_model() -> str:
+    """Load LLM model name from config.json."""
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        return config.get("llm_model", "local-model")
+    except Exception:
+        return "local-model"
+
+
+def generate_answer(query: str, context_chunks: list, lm_studio_url: str = None) -> str:
+    """
+    Send the query and retrieved context chunks to the local LLM
+    via LM Studio and return a clean, helpful answer.
+    """
+    if lm_studio_url is None:
+        lm_studio_url = get_lm_studio_chat_url()
+
+    # Build the context from retrieved chunks
+    context = ""
+    for i, chunk in enumerate(context_chunks, 1):
+        context += f"[Document {i}] {chunk['text']}\n"
+
+    # Construct the prompt with system and user messages
+    system_prompt = (
+        "You are a helpful assistant. Use the provided context to answer the user's "
+        "question. If the context doesn't contain enough information, say so clearly. "
+        "Be concise and accurate."
+    )
+    user_message = f"Context:\n{context}\n\nQuestion: {query}"
+
+    # Build the chat API payload
+    payload = {
+        "model": get_llm_model(),
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 1024,
+    }
+
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            lm_studio_url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+        # Extract the assistant's response
+        answer = result["choices"][0]["message"]["content"].strip()
+        return answer
+    except (urllib.error.URLError, TimeoutError) as exc:
+        return (
+            f"Could not reach LM Studio at {lm_studio_url}: {exc}. "
+            "Please ensure LM Studio is running with a chat model loaded."
+        )
+    except (json.JSONDecodeError, KeyError, IndexError, TypeError) as exc:
+        return f"Error parsing LLM response: {exc}"
+    except Exception as exc:
+        return f"Unexpected error calling LLM: {exc}"
+
+
+def ask(query: str, index_path: str = None, use_semantic: bool = True):
+    """
+    Main entry point: search the index and generate an answer.
+
+    1. Load embeddings.json
+    2. Compute similarity between the question and all chunks
+    3. Select the top 3 most relevant chunks
+    4. Send them to a local LLM via LM Studio
+    5. Return a clean, helpful answer
+    """
     index = load_index(index_path)
 
     if not index:
         print("Index is empty. Run: python indexer.py")
-        return []
+        return "No index available. Please run the indexer first."
+
+    # Determine top_k — always retrieve 5 for context, return top 3 to LLM
+    top_k = 5
 
     if use_semantic:
         embedding_model = get_embedding_model()
-        return semantic_search(query, index, embedding_model)
+        results = semantic_search(query, index, embedding_model, top_k=top_k)
     else:
-        return keyword_search(query, index)
+        results = keyword_search(query, index, top_k=top_k)
 
-
-def display_results(results: list):
-    """Pretty-print search results."""
     if not results:
-        print("No results found.")
-        return
+        return "No relevant context found. Please check your index or try a different query."
 
-    print(f"\n{'=' * 60}")
-    print(f"Top {len(results)} result(s):\n")
+    # Select the top 3 most relevant chunks to send to the LLM
+    top_chunks = results[:3]
 
-    for i, result in enumerate(results, 1):
-        print(f"--- Result {i} [{result['file']} chunk {result['chunk_index']}] (score: {result['score']}) ---")
-        # Show first 500 chars of the matching chunk
-        text = result["text"]
-        if len(text) > 500:
-            text = text[:500] + "..."
-        print(text)
-        print()
+    # Generate an answer using the local LLM
+    lm_studio_url = get_lm_studio_chat_url()
+    if lm_studio_url:
+        answer = generate_answer(query, top_chunks, lm_studio_url)
+    else:
+        # Fallback: return the raw context if no chat endpoint configured
+        answer = (
+            f"Query: {query}\n\n"
+            "Relevant context (no LLM configured):\n"
+            + "\n---\n".join(
+                f"[Chunk {c['chunk_index']}] {c['text']}" for c in top_chunks
+            )
+        )
 
-    print("=" * 60)
+    return answer
 
 
 if __name__ == "__main__":
@@ -166,5 +256,5 @@ if __name__ == "__main__":
 
     use_semantic = "--keyword" not in sys.argv
     query = " ".join(arg for arg in sys.argv[1:] if arg != "--keyword")
-    results = ask(query, use_semantic=use_semantic)
-    display_results(results)
+    answer = ask(query, use_semantic=use_semantic)
+    print(answer)
