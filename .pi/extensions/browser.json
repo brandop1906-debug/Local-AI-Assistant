@@ -1,0 +1,20 @@
+{
+  "name": "browser_automation",
+  "description": "Automate browser actions using Playwright. Supports navigation, clicking, typing, scraping, screenshots, and evaluation.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "script": {
+        "type": "string",
+        "description": "JavaScript code to run inside a Playwright context. Must return a JSON-serializable result."
+      }
+    },
+    "required": ["script"]
+  },
+  "command": "node",
+  "args": [
+    "-e",
+    "const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true }); const page = await browser.newPage(); const fn = new Function('page', `return (async () => { ${process.argv[1]} })()`); const result = await fn(page); console.log(JSON.stringify(result)); await browser.close(); })().catch(err => { console.error(err); process.exit(1); });"
+  ]
+}
+

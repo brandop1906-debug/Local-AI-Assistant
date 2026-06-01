@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Local AI Assistant</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">Local AI</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <span class="nav-section-label">Modules</span>
+      <button class="nav-item active" data-module="chat">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">Chat AI</span>
+      </button>
+      <button class="nav-item" data-module="email">
+        <span class="nav-icon">✉️</span>
+        <span class="nav-label">Email Assistant</span>
+      </button>
+      <button class="nav-item" data-module="quote">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Quote Generator</span>
+      </button>
+      <button class="nav-item" data-module="brain">
+        <span class="nav-icon">🧠</span>
+        <span class="nav-label">Business Brain</span>
+      </button>
+      <button class="nav-item" data-module="pdf">
+        <span class="nav-icon">📄</span>
+        <span class="nav-label">PDF Summarizer</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div id="lm-status" class="status-indicator">
+      <span class="status-dot"></span>
+      <span class="status-text">Checking LM Studio...</span>
+    </div>
+    <div class="sidebar-footer-text">
+      Local AI — No Cloud
+    </div>
+  </div>
+</aside>
+
+<!-- Main content -->
+<main id="main">
+
+  <!-- Chat Module -->
+  <section id="module-chat" class="module active">
+    <div id="chat-messages" class="chat-messages">
+      <div class="welcome-message">
+        <div class="welcome-icon">⚡</div>
+        <h2>Local AI Assistant</h2>
+        <p>Ask me anything — powered by your local LM Studio model.</p>
+        <div class="suggestions">
+          <button class="suggestion-chip" data-msg="What can you help me with?">What can you help me with?</button>
+          <button class="suggestion-chip" data-msg="Explain how RAG works">Explain how RAG works</button>
+          <button class="suggestion-chip" data-msg="Summarize my project structure">Summarize my project structure</button>
+        </div>
+      </div>
+    </div>
+    <div id="chat-input-area" class="chat-input-area">
+      <div class="chat-input-container">
+        <textarea id="chat-input" placeholder="Ask anything..." rows="1"></textarea>
+        <button id="chat-send" class="send-btn" title="Send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="chat-input-footer">
+        <span>Local AI runs entirely on your machine</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Email Module -->
+  <section id="module-email" class="module">
+    <div class="module-scroll">
+      <div class="module-header">
+        <h2>✉️ Email Assistant</h2>
+        <p>Describe the email you want to write and let AI draft it for you.</p>
+      </div>
+
+      <div class="form-card">
+        <div class="form-group">
+          <label>Email Topic / Description</label>
+          <textarea id="email-topic" placeholder="e.g., Follow up with a client about the pending invoice..." rows="4"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tone</label>
+            <select id="email-tone">
+              <option value="professional">Professional</option>
+              <option value="friendly">Friendly</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="email-generate" class="btn-primary">⚡ Generate Email</button>
+      </div>
+
+      <div id="email-result" class="result-card" style="display:none;">
+        <div class="result-header">
+          <span>Generated Email</span>
+          <div class="result-actions">
+            <button class="btn-sm" onclick="copyResult('email-content')">📋 Copy</button>
+          </div>
+        </div>
+        <textarea id="email-content" class="result-textarea" readonly></textarea>
+      </div>
+
+      <div id="email-status" class="status-bar">Ready</div>
+    </div>
+  </section>
+
+  <!-- Quote Generator Module -->
+  <section id="module-quote" class="module">
+    <div class="module-scroll">
+      <div class="module-header">
+        <h2>📋 Service Quote Generator</h2>
+        <p>Fill in the details and generate a professional service quote.</p>
+      </div>
+
+      <div class="form-card">
+        <div class="form-group">
+          <label>Service Category</label>
+          <select id="quote-category">
+            <option>Electrical Services</option>
+            <option>Plumbing Services</option>
+            <option>HVAC Services</option>
+            <option>Carpentry / Woodworking</option>
+            <option>Painting Services</option>
+            <option>Landscaping / Lawn Care</option>
+            <option>Cleaning Services</option>
+            <option>Moving / Relocation</option>
+            <option>IT / Computer Repair</option>
+            <option>Auto Repair / Maintenance</option>
+            <option>Roofing Services</option>
+            <option>Drywall / Drywall Repair</option>
+            <option>Window / Door Installation</option>
+            <option>Appliance Repair</option>
+            <option>General Handyman</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Customer Information (optional)</label>
+          <div class="form-row">
+            <input id="quote-customer-name" placeholder="Customer Name">
+            <input id="quote-customer-phone" placeholder="Phone">
+          </div>
+          <input id="quote-customer-address" placeholder="Address" style="margin-top:8px;">
+        </div>
+
+        <div class="form-group">
+          <label>Services / Project Description</label>
+          <textarea id="quote-services" placeholder="e.g., Home office electrical wiring for a 12x10 room..." rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Pricing (optional)</label>
+          <div id="quote-pricing-items" class="pricing-items"></div>
+          <button class="btn-sm" id="quote-add-item" style="margin-top:8px;">+ Add Line Item</button>
+        </div>
+
+        <button id="quote-generate" class="btn-primary">⚡ Generate Quote</button>
+      </div>
+
+      <div id="quote-result" class="result-card" style="display:none;">
+        <div class="result-header">
+          <span>Generated Quote</span>
+          <div class="result-actions">
+            <button class="btn-sm" onclick="copyResult('quote-content')">📋 Copy</button>
+          </div>
+        </div>
+        <textarea id="quote-content" class="result-textarea" readonly></textarea>
+      </div>
+
+      <div id="quote-status" class="status-bar">Ready</div>
+    </div>
+  </section>
+
+  <!-- Business Brain Module -->
+  <section id="module-brain" class="module">
+    <div class="module-scroll">
+      <div class="module-header">
+        <h2>🧠 Business Brain</h2>
+        <p>Ask questions about your indexed documents. Powered by RAG.</p>
+      </div>
+
+      <div class="form-card">
+        <div class="form-group">
+          <label>Ask the Business Brain</label>
+          <input id="brain-question" placeholder="e.g., What are the key points from the Q3 report?">
+        </div>
+        <div class="form-row">
+          <button id="brain-ask" class="btn-primary">Ask the Brain</button>
+          <button id="brain-reindex" class="btn-secondary">🔄 Re-index Documents</button>
+        </div>
+      </div>
+
+      <div id="brain-result" class="result-card" style="display:none;">
+        <div class="result-header">
+          <span>Answer</span>
+        </div>
+        <div id="brain-content" class="result-textarea" style="white-space:pre-wrap;overflow:auto;"></div>
+      </div>
+
+      <div id="brain-status" class="status-bar">Ready</div>
+    </div>
+  </section>
+
+  <!-- PDF Summarizer Module -->
+  <section id="module-pdf" class="module">
+    <div class="module-scroll">
+      <div class="module-header">
+        <h2>📄 PDF Summarizer</h2>
+        <p>Upload a PDF and get an AI-powered summary.</p>
+      </div>
+
+      <div class="form-card">
+        <div class="form-group">
+          <label>PDF File</label>
+          <input type="file" id="pdf-file" accept=".pdf" class="file-input">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Summary Length</label>
+            <select id="pdf-length">
+              <option value="short">Short</option>
+              <option value="medium" selected>Medium</option>
+              <option value="detailed">Detailed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;margin-top:24px;">
+              <input type="checkbox" id="pdf-plain"> Rewrite in plain English
+            </label>
+          </div>
+        </div>
+
+        <button id="pdf-summarize" class="btn-primary">📄 Summarize PDF</button>
+      </div>
+
+      <div id="pdf-result" class="result-card" style="display:none;">
+        <div class="result-header">
+          <span>Summary</span>
+          <div class="result-actions">
+            <button class="btn-sm" onclick="copyResult('pdf-content')">📋 Copy</button>
+          </div>
+        </div>
+        <div id="pdf-content" class="result-textarea" style="white-space:pre-wrap;overflow:auto;"></div>
+      </div>
+
+      <div id="pdf-status" class="status-bar">Ready</div>
+    </div>
+  </section>
+
+</main>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
