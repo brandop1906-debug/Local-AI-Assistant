@@ -16,6 +16,7 @@ Run with:
 import os
 import sys
 import threading
+import traceback
 import customtkinter as ctk
 from tkinter import filedialog
 
@@ -460,7 +461,8 @@ class PDFSummarizerGUI:
             self.root.after(0, self._show_success, summary, filepath)
 
         except Exception as e:
-            self.root.after(0, self._show_error, str(e))
+            tb = traceback.format_exc()
+            self.root.after(0, self._show_error, f"{str(e)}\n\n--- Traceback ---\n{tb}")
         finally:
             self.root.after(0, self.summarize_btn.config, state="normal")
             self.is_running = False

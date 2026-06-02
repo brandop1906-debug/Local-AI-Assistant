@@ -125,9 +125,12 @@ def launch_module(module_path: str) -> None:
         return
 
     try:
+        env = os.environ.copy()
+        env["PYTHONUTF8"] = "1"
         subprocess.Popen(
             [sys.executable, full_path],
             cwd=SCRIPT_DIR,
+            env=env,
             creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
         )
     except FileNotFoundError:
