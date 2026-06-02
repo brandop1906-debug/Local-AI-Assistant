@@ -34,6 +34,13 @@ import json
 import textwrap
 from datetime import datetime
 
+# Force UTF-8 encoding on Windows (fixes emoji print crashes)
+os.environ["PYTHONUTF8"] = "1"
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8")
+
 
 # ---------------------------------------------------------------------------
 # Configuration – loads from config.json, falls back to defaults
