@@ -1,6 +1,6 @@
 {
     "app_name": "Local AI Assistant",
-    "model": "qwen/qwen3.6-35b-a3b",
+    "model": "qwen2.5:7b",
     "modules": [
         {
             "name": "Email Assistant",
