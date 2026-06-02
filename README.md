@@ -1,0 +1,74 @@
+# Local AI Assistant
+
+A 100% offline, desktop AI assistant built with Python, FastAPI, and pywebview. Runs locally — no cloud APIs, no internet required.
+
+## Features
+
+- **AI Chat** — Chat with a local LLM (via LM Studio) with RAG over your project documents
+- **Business Brain** — Ask questions against indexed documents (FAQs, policies, pricing, procedures, templates)
+- **Email Drafting** — Generate professional email drafts using your templates
+- **PDF Summarization** — Upload and summarize PDF documents
+- **Service Quotes** — Generate professional service quotes with pricing breakdowns
+- **Chat History** — Persistent sessions stored locally as JSON files
+
+## Prerequisites
+
+- Python 3.10+
+- [LM Studio](https://lmstudio.ai/) running with a model loaded (default: `localhost:1234`)
+
+## Installation
+
+```bash
+pip install -r requirements-web.txt
+```
+
+## Running
+
+```bash
+python run_web.py
+```
+
+This starts a local FastAPI server and opens the app in a system webview window.
+
+- Local server: `http://127.0.0.1:18765/`
+- Check LM Studio connectivity: `GET /api/health`
+
+## Architecture
+
+```
+run_web.py          → Launcher (entry point)
+app/main.py         → FastAPI server + pywebview window
+app/                → Frontend (HTML/CSS/JS)
+modules/            → Feature modules
+  chat_ai/          → Local LLM chat with RAG
+  email_assistant/  → Email template generation
+  pdf_summarizer/   → PDF upload & summarization
+  quote_generator/  → Service quote generation
+  chat_history.py   → Session storage (JSON files)
+business_brain/     → Document indexing & semantic search
+```
+
+## Configuration
+
+Each module has its own `config.json`:
+
+- `config.json` — Root config (LM Studio URL, API keys)
+- `modules/chat_ai/config.json` — Model, temperature, max tokens, system prompt
+- `modules/email_assistant/config.json` — Email templates & settings
+- `modules/pdf_summarizer/config.json` — Summary length, plain English toggle
+- `modules/quote_generator/config.json` — Quote templates & pricing defaults
+
+## Chat History
+
+Sessions are stored in `.local/chat_history/` as individual JSON files.
+
+## Logs
+
+Application logs are written to `.local/logs/app.log` (rotating, 5 MB max, 5 backups).
+Useful for debugging issues that don't surface in the app UI.
+
+## Troubleshooting
+
+- **"LM Studio not detected"** — Ensure LM Studio is running and a model is loaded
+- **Empty responses** — Check that the correct model is loaded in LM Studio
+- **Import errors** — Verify all dependencies: `pip install -r requirements-web.txt`

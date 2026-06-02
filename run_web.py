@@ -19,22 +19,25 @@ if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
 
 if __name__ == "__main__":
-    print("Starting Local AI Assistant...")
-    print("  - Local server: http://127.0.0.1:18765/")
-    print("  - LM Studio must be running for AI features")
-    print()
+    from utils.logging_config import setup_logging, get_logger
+
+    setup_logging()
+    logger = get_logger("launcher")
+
+    logger.info("Starting Local AI Assistant...")
+    logger.info("  Local server: http://127.0.0.1:18765/")
+    logger.info("  LM Studio must be running for AI features")
 
     try:
         from app.main import main
         main()
     except KeyboardInterrupt:
-        print("\n[INTERRUPTED] Closed.")
+        logger.info("Interrupted. Shutting down.")
         sys.exit(0)
     except ImportError as e:
-        print(f"\n[ERROR] Missing dependency: {e}")
-        print("\nInstall web dependencies:")
-        print("  pip install pywebview fastapi uvicorn")
+        logger.error("Missing dependency: %s", e)
+        logger.error("Install web dependencies: pip install pywebview fastapi uvicorn")
         sys.exit(1)
     except Exception as e:
-        print(f"\n[ERROR] {e}")
+        logger.exception("Unhandled error during startup")
         sys.exit(1)

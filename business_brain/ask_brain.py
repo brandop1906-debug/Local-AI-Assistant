@@ -12,14 +12,18 @@ import sys
 import urllib.request
 import urllib.error
 
+from utils.logging_config import get_logger
+
+logger = get_logger("ask_brain")
+
 
 def load_index(index_path: str = None) -> dict:
     """Load the document index from disk."""
     if index_path is None:
         index_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "embeddings.json")
     if not os.path.exists(index_path):
-        print(f"Index file not found: {index_path}")
-        print("Run: python indexer.py")
+        logger.error("Index file not found: %s", index_path)
+        logger.error("Run: python indexer.py")
         sys.exit(1)
     with open(index_path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -88,12 +92,10 @@ def semantic_search(query: str, index: dict, embedding_model: str, top_k: int = 
             result = json.loads(resp.read().decode("utf-8"))
         query_emb = result["data"][0]["embedding"]
     except (urllib.error.URLError, TimeoutError) as exc:
-        print(f"LM Studio connection failed: {exc}")
-        print("Falling back to keyword search.")
+        logger.warning("LM Studio connection failed: %s — falling back to keyword search", exc)
         return keyword_search(query, index, top_k)
     except (json.JSONDecodeError, KeyError, IndexError) as exc:
-        print(f"Could not parse LM Studio response: {exc}")
-        print("Falling back to keyword search.")
+        logger.warning("Could not parse LM Studio response: %s — falling back to keyword search", exc)
         return keyword_search(query, index, top_k)
 
     # Cosine similarity against all chunks
@@ -234,7 +236,7 @@ def ask(query: str, index_path: str = None, use_semantic: bool = True):
     index = load_index(index_path)
 
     if not index:
-        print("Index is empty. Run: python indexer.py")
+        logger.warning("Index is empty. Run: python indexer.py")
         return "No index available. Please run the indexer first."
 
     # Determine top_k — always retrieve 5 for context, return top 3 to LLM

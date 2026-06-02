@@ -17,6 +17,15 @@ import threading
 import webview
 
 # ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+from utils.logging_config import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger("app.main")
+
+# ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 
@@ -30,9 +39,9 @@ for p in [PROJECT_DIR, MODULES_DIR, BB_DIR]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-print(f"[DEBUG] PROJECT_DIR={PROJECT_DIR}")
-print(f"[DEBUG] MODULES_DIR={MODULES_DIR}")
-print(f"[DEBUG] sys.path={sys.path[:5]}")
+logger.debug("PROJECT_DIR=%s", PROJECT_DIR)
+logger.debug("MODULES_DIR=%s", MODULES_DIR)
+logger.debug("sys.path=%s", sys.path[:5])
 
 # ---------------------------------------------------------------------------
 # FastAPI app
@@ -442,7 +451,7 @@ def main():
     try:
         webview.start()
     except KeyboardInterrupt:
-        print("\n[INTERRUPTED] Closed.")
+        logger.info("Interrupted. Shutting down.")
         sys.exit(0)
 
 

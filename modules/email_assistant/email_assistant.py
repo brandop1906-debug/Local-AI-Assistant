@@ -36,6 +36,10 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
     sys.stderr.reconfigure(encoding="utf-8")
 
+from utils.logging_config import get_logger
+
+logger = get_logger("email_assistant")
+
 # LM Studio uses the requests library for HTTP calls.
 # If you don't have it, run: pip install requests
 try:
@@ -88,7 +92,7 @@ def load_config() -> dict:
                     if key in file_config:
                         config[key] = file_config[key]
         except (json.JSONDecodeError, OSError) as e:
-            print(f"[WARN] Failed to load {CONFIG_PATH}: {e}. Using defaults.")
+            logger.warning("Failed to load %s: %s — using defaults", CONFIG_PATH, e)
 
     # 2. Environment variable overrides (highest priority)
     env_host = os.environ.get("LM_STUDIO_HOST")

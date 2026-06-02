@@ -41,6 +41,10 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
     sys.stderr.reconfigure(encoding="utf-8")
 
+from utils.logging_config import get_logger
+
+logger = get_logger("pdf_summarizer")
+
 
 # ---------------------------------------------------------------------------
 # Configuration – loads from config.json, falls back to defaults
@@ -84,7 +88,7 @@ def load_config() -> dict:
                     if key in file_config:
                         config[key] = file_config[key]
         except (json.JSONDecodeError, OSError) as e:
-            print(f"[WARN] Failed to load {CONFIG_PATH}: {e}. Using defaults.")
+            logger.warning("Failed to load %s: %s — using defaults", CONFIG_PATH, e)
 
     # 2. Environment variable overrides (highest priority)
     env_host = os.environ.get("LM_STUDIO_HOST")
@@ -205,7 +209,7 @@ def extract_text(pdf_path: str) -> str:
     except ImportError:
         pass
     except Exception as e:
-        print(f"  [WARN] pdfplumber failed: {e}")
+        logger.warning("pdfplumber failed: %s", e)
 
     # Fallback to PyPDF2
     try:
@@ -464,7 +468,7 @@ def combine_summaries(chunk_summaries: list, plain_english: bool = False) -> str
             result = call_lm_studio(prompt, MODEL, TEMPERATURE, MAX_TOKENS)
         except Exception as e:
             # If final consolidation fails, just join with separators
-            print(f"  [WARN] Could not combine summaries: {e}")
+            logger.warning("Could not combine summaries: %s", e)
             result = "\n\n" + "=" * 50 + "\n\n".join(chunk_summaries)
 
     # Optional plain-English rewrite
@@ -482,7 +486,7 @@ def combine_summaries(chunk_summaries: list, plain_english: bool = False) -> str
         try:
             result = call_lm_studio(rewrite_prompt, MODEL, TEMPERATURE, MAX_TOKENS)
         except Exception as e:
-            print(f"  [WARN] Plain English rewrite failed: {e}")
+            logger.warning("Plain English rewrite failed: %s", e)
 
     return result
 
