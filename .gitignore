@@ -12,6 +12,9 @@ build/
 # Output files
 output/
 
+# Local data (chat history, etc.)
+.local/
+
 # OS
 .DS_Store
 Thumbs.db

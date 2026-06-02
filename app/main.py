@@ -10,6 +10,7 @@ Usage:
     python run_web.py
 """
 
+import json
 import os
 import sys
 import threading
@@ -37,7 +38,7 @@ print(f"[DEBUG] sys.path={sys.path[:5]}")
 # FastAPI app
 # ---------------------------------------------------------------------------
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -269,6 +270,109 @@ def api_brain_reindex():
         from indexer import index_documents
         index_documents(force_reindex=True)
         return {"status": "ok", "message": "Documents re-indexed successfully."}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/chat/history")
+async def api_new_session(request: Request):
+    """Create a new chat session."""
+    try:
+        body = json.loads(await request.body())
+        name = body.get('name', 'Untitled')
+        from chat_history import new_session as _new_session
+        session = _new_session(name=name)
+        return {"session": session}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/chat/history")
+def api_list_sessions():
+    """List all chat sessions."""
+    try:
+        from chat_history import get_sessions as _get_sessions
+        sessions = _get_sessions()
+        return {"sessions": sessions}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/chat/history/clear")
+def api_clear_sessions():
+    """Clear all chat sessions."""
+    try:
+        from chat_history import clear_all_sessions as _clear
+        count = _clear()
+        return {"status": "cleared", "deleted": count}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/chat/history/{session_id}")
+def api_load_session(session_id: str):
+    """Load a specific session."""
+    try:
+        from chat_history import load_session as _load_session
+        session = _load_session(session_id)
+        if session is None:
+            return JSONResponse({"error": "Session not found"}, status_code=404)
+        return {"session": session}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.put("/api/chat/history/{session_id}")
+async def api_rename_session(session_id: str, request: Request):
+    """Rename a session."""
+    try:
+        from chat_history import rename_session as _rename
+        body = json.loads(await request.body())
+        name = body.get('name', '').strip()
+        if not name:
+            return JSONResponse({"error": "Name cannot be empty"}, status_code=400)
+        session = _rename(session_id, name)
+        if session is None:
+            return JSONResponse({"error": "Session not found"}, status_code=404)
+        return {"session": session}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.delete("/api/chat/history/{session_id}")
+def api_delete_session(session_id: str):
+    """Delete a session."""
+    try:
+        from chat_history import delete_session as _delete
+        deleted = _delete(session_id)
+        if not deleted:
+            return JSONResponse({"error": "Session not found"}, status_code=404)
+        return {"status": "deleted"}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/chat/{session_id}")
+def api_chat_with_session(session_id: str, data: dict):
+    """Chat with the local LLM and save to a session."""
+    text = data.get("text", "").strip()
+    if not text:
+        return JSONResponse({"error": "Empty message"}, status_code=400)
+
+    try:
+        from chat_history import save_message as _save_msg
+
+        # Save user message
+        _save_msg(session_id, "user", text)
+
+        # Get chat response
+        from chat_ai.chat import ask_ai
+        response = ask_ai(text)
+
+        # Save AI response
+        _save_msg(session_id, "ai", response)
+
+        return {"response": response, "session_id": session_id}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

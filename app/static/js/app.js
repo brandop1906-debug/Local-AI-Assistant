@@ -100,6 +100,208 @@ async function checkHealth() {
   }
 }
 
+/* ---- Chat History / Session Management ---- */
+let currentSessionId = null;
+
+async function loadChatHistory() {
+  try {
+    const resp = await fetch(`${API}/chat/history`);
+    if (!resp.ok) {
+      console.error(`Chat history API error: ${resp.status} ${resp.statusText}`);
+      renderHistoryList([]);
+      return;
+    }
+    const data = await resp.json();
+    renderHistoryList(data.sessions || []);
+  } catch (err) {
+    console.error('Failed to load chat history:', err);
+    renderHistoryList([]);
+  }
+}
+
+function renderHistoryList(sessions) {
+  const container = $('#chat-history-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (sessions.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'history-empty';
+    empty.textContent = 'No sessions yet';
+    empty.style.cssText = 'padding:8px 16px;font-size:12px;color:var(--text-muted);font-style:italic;';
+    container.appendChild(empty);
+    const clearBtn = $('#clear-history-btn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    return;
+  }
+
+  sessions.forEach(session => {
+    const btn = document.createElement('button');
+    btn.className = 'chat-history-item' + (session.id === currentSessionId ? ' active' : '');
+    btn.dataset.sessionId = session.id;
+
+    const msgCount = session.messages ? session.messages.length : 0;
+
+    btn.innerHTML = `
+      <span class="history-name" title="${escapeAttr(session.name)}">${escapeHtml(session.name)}</span>
+      <span class="history-count">${msgCount} msg${msgCount !== 1 ? 's' : ''}</span>
+      <button class="history-delete" title="Delete session" data-session-id="${session.id}">✕</button>
+    `;
+
+    btn.addEventListener('click', (e) => {
+      if (e.target.classList.contains('history-delete')) return;
+      switchSession(session.id);
+    });
+
+    const delBtn = btn.querySelector('.history-delete');
+    if (delBtn) {
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteSession(session.id);
+      });
+    }
+
+    container.appendChild(btn);
+  });
+
+  const clearBtn = $('#clear-history-btn');
+  if (clearBtn) clearBtn.style.display = sessions.length > 0 ? 'flex' : 'none';
+}
+
+async function createNewSession() {
+  try {
+    const resp = await fetch(`${API}/chat/history`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Untitled' })
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error(`Create session failed (${resp.status}):`, errText);
+      return null;
+    }
+    const data = await resp.json();
+    if (data.session) {
+      currentSessionId = data.session.id;
+      await loadChatHistory();
+      updateSessionName(data.session.name);
+      clearChatView();
+      chatInput.focus();
+      return data.session;
+    }
+    return null;
+  } catch (err) {
+    console.error('Failed to create session:', err);
+    return null;
+  }
+}
+
+async function switchSession(sessionId) {
+  if (sessionId === currentSessionId) return;
+
+  try {
+    const resp = await fetch(`${API}/chat/history/${sessionId}`);
+    const data = await resp.json();
+    if (data.session) {
+      currentSessionId = sessionId;
+      loadSessionMessages(data.session.messages || []);
+      updateSessionName(data.session.name);
+      await loadChatHistory(); // refresh active state
+    }
+  } catch (err) {
+    console.error('Failed to load session:', err);
+  }
+}
+
+function loadSessionMessages(messages) {
+  chatMessages.innerHTML = '';
+
+  if (messages.length === 0) {
+    const welcome = document.createElement('div');
+    welcome.className = 'welcome-message';
+    welcome.innerHTML = `
+      <div class="welcome-icon">⚡</div>
+      <h2>Local AI Assistant</h2>
+      <p>Ask me anything — powered by your local LM Studio model.</p>
+      <div class="suggestions">
+        <button class="suggestion-chip" data-msg="What can you help me with?">What can you help me with?</button>
+        <button class="suggestion-chip" data-msg="Explain how RAG works">Explain how RAG works</button>
+        <button class="suggestion-chip" data-msg="Summarize my project structure">Summarize my project structure</button>
+      </div>
+    `;
+    chatMessages.appendChild(welcome);
+    return;
+  }
+
+  messages.forEach(msg => {
+    const role = msg.role === 'user' ? 'user' : 'ai';
+    addMessage(role, msg.content);
+  });
+
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function deleteSession(sessionId) {
+  if (!confirm('Delete this session? This cannot be undone.')) return;
+
+  try {
+    const resp = await fetch(`${API}/chat/history/${sessionId}`, { method: 'DELETE' });
+    const data = await resp.json();
+    if (data.status === 'deleted') {
+      if (currentSessionId === sessionId) {
+        currentSessionId = null;
+        createNewSession();
+      }
+      await loadChatHistory();
+    }
+  } catch (err) {
+    console.error('Failed to delete session:', err);
+  }
+}
+
+async function clearAllSessions() {
+  if (!confirm('Delete ALL chat sessions? This cannot be undone.')) return;
+
+  try {
+    const resp = await fetch(`${API}/chat/history/clear`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.status === 'cleared') {
+      currentSessionId = null;
+      clearChatView();
+      updateSessionName('New Session');
+      await loadChatHistory();
+    }
+  } catch (err) {
+    console.error('Failed to clear sessions:', err);
+  }
+}
+
+function updateSessionName(name) {
+  const el = $('#current-session-name');
+  if (el) el.textContent = name;
+}
+
+function clearChatView() {
+  chatMessages.innerHTML = '';
+  const welcome = document.createElement('div');
+  welcome.className = 'welcome-message';
+  welcome.innerHTML = `
+    <div class="welcome-icon">⚡</div>
+    <h2>Local AI Assistant</h2>
+    <p>Ask me anything — powered by your local LM Studio model.</p>
+    <div class="suggestions">
+      <button class="suggestion-chip" data-msg="What can you help me with?">What can you help me with?</button>
+      <button class="suggestion-chip" data-msg="Explain how RAG works">Explain how RAG works</button>
+      <button class="suggestion-chip" data-msg="Summarize my project structure">Summarize my project structure</button>
+    </div>
+  `;
+  chatMessages.appendChild(welcome);
+}
+
+function escapeAttr(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 /* ---- Chat Module ---- */
 const chatMessages = $('#chat-messages');
 const chatInput = $('#chat-input');
@@ -152,6 +354,15 @@ function removeTypingIndicator() {
 async function sendMessage(text) {
   if (!text.trim()) return;
 
+  // Ensure we have a session
+  if (!currentSessionId) {
+    const session = await createNewSession();
+    if (!session) {
+      addMessage('error', 'Could not create a session. Is the app connected to the server?');
+      return;
+    }
+  }
+
   // Hide welcome message
   const welcome = chatMessages.querySelector('.welcome-message');
   if (welcome) welcome.style.display = 'none';
@@ -164,7 +375,7 @@ async function sendMessage(text) {
   const typing = addTypingIndicator();
 
   try {
-    const resp = await fetch(`${API}/chat`, {
+    const resp = await fetch(`${API}/chat/${currentSessionId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
@@ -175,6 +386,7 @@ async function sendMessage(text) {
 
     if (data.response) {
       addMessage('ai', data.response);
+      await loadChatHistory(); // Refresh sidebar
     } else {
       addMessage('error', `Error: ${data.error || 'Unknown error'}`);
     }
@@ -467,6 +679,30 @@ $('#pdf-summarize')?.addEventListener('click', async () => {
   reader.readAsDataURL(file);
 });
 
+/* ---- Chat History Event Listeners ---- */
+$('#new-session-btn')?.addEventListener('click', createNewSession);
+$('#clear-history-btn')?.addEventListener('click', clearAllSessions);
+
+// Rename session
+$('#session-rename-btn')?.addEventListener('click', () => {
+  if (!currentSessionId) return;
+  const currentName = $('#current-session-name')?.textContent || 'Untitled';
+  const newName = prompt('Rename session:', currentName);
+  if (newName && newName.trim()) {
+    fetch(`${API}/chat/history/${currentSessionId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName.trim() })
+    }).then(() => {
+      updateSessionName(newName.trim());
+      loadChatHistory();
+    }).catch(err => console.error('Rename failed:', err));
+  }
+});
+
 /* ---- Init ---- */
 checkHealth();
 setInterval(checkHealth, 30000); // Re-check every 30s
+
+// Load chat history on startup
+loadChatHistory();
