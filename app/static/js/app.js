@@ -381,8 +381,10 @@ $('#brain-ask')?.addEventListener('click', async () => {
     if (data.response) {
       showResult('brain', data.response);
       showStatus('brain', 'Done', 'success');
-    } else {
+    } else if (data.error) {
       showStatus('brain', `Error: ${data.error}`, 'error');
+    } else {
+      showStatus('brain', 'No answer returned.', 'error');
     }
   } catch (err) {
     showStatus('brain', `Connection error: ${err.message}`, 'error');

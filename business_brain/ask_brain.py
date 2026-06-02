@@ -173,7 +173,7 @@ def generate_answer(query: str, context_chunks: list, lm_studio_url: str = None)
             {"role": "user", "content": user_message},
         ],
         "temperature": 0.3,
-        "max_tokens": 1024,
+        "max_tokens": 8192,
     }
 
     try:
@@ -187,7 +187,28 @@ def generate_answer(query: str, context_chunks: list, lm_studio_url: str = None)
         with urllib.request.urlopen(req, timeout=120) as resp:
             result = json.loads(resp.read().decode("utf-8"))
         # Extract the assistant's response
-        answer = result["choices"][0]["message"]["content"].strip()
+        choice = result["choices"][0]["message"]
+        answer = choice.get("content", "").strip()
+        # Some reasoning models (QwQ, etc.) put output in reasoning_content
+        if not answer:
+            reasoning = choice.get("reasoning_content", "")
+            if reasoning:
+                # Try to extract the actual answer from reasoning content
+                # Reasoning models often end with a clear answer after their thinking
+                for marker in ["Final answer:", "Answer:", "Therefore,", "Thus,", "So,", "\n\n"]:
+                    idx = reasoning.rfind(marker)
+                    if idx > len(reasoning) * 0.3:  # Only use markers in the last 70%
+                        answer = reasoning[idx + len(marker):].strip()
+                        break
+                # If no marker found, return the last coherent paragraph
+                if not answer:
+                    paragraphs = reasoning.split("\n\n")
+                    # Take last 2-3 paragraphs as the answer
+                    answer = "\n\n".join(paragraphs[-3:]).strip()
+                if not answer:
+                    answer = reasoning
+        if not answer:
+            return "The model returned an empty response. Please try again."
         return answer
     except (urllib.error.URLError, TimeoutError) as exc:
         return (
@@ -235,6 +256,8 @@ def ask(query: str, index_path: str = None, use_semantic: bool = True):
     lm_studio_url = get_lm_studio_chat_url()
     if lm_studio_url:
         answer = generate_answer(query, top_chunks, lm_studio_url)
+        if not answer:
+            return "The model returned an empty response. Please try again."
     else:
         # Fallback: return the raw context if no chat endpoint configured
         answer = (
