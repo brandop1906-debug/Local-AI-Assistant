@@ -146,7 +146,12 @@ def api_pdf_summarize(data: dict):
         with open(result_path, "r", encoding="utf-8") as f:
             summary = f.read()
 
-        return {"response": summary, "filepath": result_path}
+        # Use json.dumps with ensure_ascii=True to avoid Windows charmap issues
+        # when the LLM output contains emoji or other non-ASCII characters
+        import json as _json
+        return JSONResponse(
+            content=_json.loads(_json.dumps({"response": summary, "filepath": result_path}, ensure_ascii=True))
+        )
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
     finally:
