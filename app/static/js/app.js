@@ -71,6 +71,8 @@ function switchModule(moduleName) {
 }
 
 $$('.nav-item').forEach(btn => {
+  // Only attach module-switch to buttons that have a data-module attribute
+  if (!btn.dataset.module) return;
   btn.addEventListener('click', () => switchModule(btn.dataset.module));
 });
 
@@ -206,6 +208,8 @@ async function switchSession(sessionId) {
       currentSessionId = sessionId;
       loadSessionMessages(data.session.messages || []);
       updateSessionName(data.session.name);
+      // Switch to chat module so the user can see the loaded session
+      switchModule('chat');
       await loadChatHistory(); // refresh active state
     }
   } catch (err) {
@@ -414,11 +418,12 @@ chatInput.addEventListener('input', () => {
   chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + 'px';
 });
 
-// Suggestion chips
-$$('.suggestion-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
+// Suggestion chips — use event delegation so they work even after DOM recreation
+chatMessages.addEventListener('click', (e) => {
+  const chip = e.target.closest('.suggestion-chip');
+  if (chip && chip.dataset.msg) {
     sendMessage(chip.dataset.msg);
-  });
+  }
 });
 
 /* ---- Email Module ---- */
