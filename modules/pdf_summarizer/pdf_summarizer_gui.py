@@ -14,18 +14,12 @@ Run with:
 """
 
 import os
-import sys
 import threading
 import traceback
 import customtkinter as ctk
 from tkinter import filedialog
 
-# Add the script's directory to sys.path
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-if SCRIPT_DIR not in sys.path:
-    sys.path.insert(0, SCRIPT_DIR)
-
-import pdf_summarizer
+from modules import pdf_summarizer
 
 # Theme colors
 DARK_BG = "#0f1117"

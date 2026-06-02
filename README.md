@@ -19,7 +19,12 @@ A 100% offline, desktop AI assistant built with Python, FastAPI, and pywebview. 
 ## Installation
 
 ```bash
-pip install -r requirements-web.txt
+# Install the package in editable mode (recommended)
+pip install -e .
+
+# Or install optional extras:
+pip install -e ".[pdf,docx,indexer]"   # PDF/DOCX support + document indexer
+pip install -e ".[dev]"                  # dev dependencies (pytest, httpx)
 ```
 
 ## Running
@@ -50,13 +55,24 @@ business_brain/     → Document indexing & semantic search
 
 ## Configuration
 
-Each module has its own `config.json`:
+Each module has its own `config.json`. The root `config.json` controls:
 
-- `config.json` — Root config (LM Studio URL, API keys)
-- `modules/chat_ai/config.json` — Model, temperature, max tokens, system prompt
-- `modules/email_assistant/config.json` — Email templates & settings
-- `modules/pdf_summarizer/config.json` — Summary length, plain English toggle
-- `modules/quote_generator/config.json` — Quote templates & pricing defaults
+- **LM Studio settings** (`lm_studio_url`, `lm_studio_chat_url`, `embedding_model`)
+- **Active modules** (which modules are enabled in the launcher)
+- **Default model** (`model`, `temperature`, `max_tokens`)
+
+Each module's `config.json` overrides root settings for that specific module.
+
+### Config files
+
+| File | Purpose |
+|---|---|
+| `config.json` | Root config (LM Studio URL, API keys) |
+| `modules/chat_ai/config.json` | Model, temperature, max tokens, system prompt |
+| `modules/email_assistant/config.json` | Email templates & settings |
+| `modules/pdf_summarizer/config.json` | Summary length, plain English toggle |
+| `modules/quote_generator/config.json` | Quote templates & pricing defaults |
+| `business_brain/config.json` | Embedding model, LM Studio URL for indexing |
 
 ## Chat History
 
@@ -71,4 +87,4 @@ Useful for debugging issues that don't surface in the app UI.
 
 - **"LM Studio not detected"** — Ensure LM Studio is running and a model is loaded
 - **Empty responses** — Check that the correct model is loaded in LM Studio
-- **Import errors** — Verify all dependencies: `pip install -r requirements-web.txt`
+- **Import errors** — Reinstall the package: `pip install -e .`

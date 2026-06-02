@@ -77,7 +77,7 @@ def build_project_context(max_tokens: int = 8000) -> str:
 # ---------------------------------------------------------------------------
 # RAG-aware context builder (imported from rag.py)
 # ---------------------------------------------------------------------------
-from chat_ai.rag import build_rag_context  # noqa: E402
+from modules.chat_ai.rag import build_rag_context  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

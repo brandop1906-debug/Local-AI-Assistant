@@ -11,17 +11,11 @@ Run with:
     (or launch from launcher.py)
 """
 
-import sys
 import os
 import customtkinter as ctk
 import threading
 
-# Ensure the parent directory (modules/) is on sys.path
-_MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
-if os.path.dirname(_MODULE_DIR) not in sys.path:
-    sys.path.insert(0, os.path.dirname(_MODULE_DIR))
-
-from chat_ai.chat import ask_ai
+from modules.chat_ai.chat import ask_ai
 
 # Theme colors
 DARK_BG = "#0f1117"

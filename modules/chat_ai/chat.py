@@ -24,14 +24,8 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure the parent directory (modules/) is on sys.path so imports work
-# regardless of whether we're launched from the project root or modules/
-_MODULE_DIR = Path(__file__).resolve().parent
-if str(_MODULE_DIR.parent) not in sys.path:
-    sys.path.insert(0, str(_MODULE_DIR.parent))
-
 # Import the context builder (same directory)
-from chat_ai.context import build_rag_context, inject_context
+from modules.chat_ai.context import build_rag_context, inject_context
 
 # ---------------------------------------------------------------------------
 # Configuration paths

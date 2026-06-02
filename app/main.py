@@ -32,16 +32,24 @@ logger = get_logger("app.main")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.abspath(os.path.dirname(SCRIPT_DIR))  # Local AI Assistant (project root)
 
-# Ensure modules are importable
-MODULES_DIR = os.path.join(PROJECT_DIR, "modules")
-BB_DIR = os.path.join(PROJECT_DIR, "business_brain")
-for p in [PROJECT_DIR, MODULES_DIR, BB_DIR]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
+# Package imports — no sys.path manipulation needed when installed via pip
+from modules.chat_ai.chat import ask_ai
+from modules.chat_history import (
+    new_session,
+    get_sessions,
+    clear_all_sessions,
+    load_session,
+    save_message,
+    rename_session,
+    delete_session,
+)
+from modules import email_assistant
+from modules import pdf_summarizer
+from modules import quote_generator
+from business_brain import ask_brain
+from business_brain.indexer import index_documents
 
 logger.debug("PROJECT_DIR=%s", PROJECT_DIR)
-logger.debug("MODULES_DIR=%s", MODULES_DIR)
-logger.debug("sys.path=%s", sys.path[:5])
 
 # ---------------------------------------------------------------------------
 # FastAPI app
@@ -76,7 +84,6 @@ def api_chat(data: dict):
         return JSONResponse({"error": "Empty message"}, status_code=400)
 
     try:
-        from chat_ai.chat import ask_ai
         response = ask_ai(text)
         return {"response": response}
     except Exception as e:
@@ -93,24 +100,20 @@ def api_email(data: dict):
         return JSONResponse({"error": "Please describe the email you want to write."}, status_code=400)
 
     try:
-        # Import from existing module
-        sys.path.insert(0, os.path.join(PROJECT_DIR, "modules", "email_assistant"))
-        import email_assistant as ea
-
-        template_text = ea.load_template(tone)
+        template_text = email_assistant.load_template(tone)
         full_prompt = (
             f"{template_text}\n\n"
             f"Email topic / summary:\n{topic}\n\n"
             f"Please write the complete email based on the topic above.\n"
             f"Include a subject line and the email body."
         )
-        email_content = ea.call_lm_studio(full_prompt)
+        email_content = email_assistant.call_lm_studio(full_prompt)
 
         # Save to output folder
-        ea.ensure_dir(ea.OUTPUT_DIR)
+        email_assistant.ensure_dir(email_assistant.OUTPUT_DIR)
         from datetime import datetime
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filepath = os.path.join(ea.OUTPUT_DIR, f"email_{ts}.txt")
+        filepath = os.path.join(email_assistant.OUTPUT_DIR, f"email_{ts}.txt")
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(email_content)
 
@@ -137,16 +140,13 @@ def api_pdf_summarize(data: dict):
         with open(tmp_path, "wb") as f:
             f.write(base64.b64decode(file_data))
 
-        sys.path.insert(0, os.path.join(PROJECT_DIR, "modules", "pdf_summarizer"))
-        import pdf_summarizer as ps
-
         def progress_cb(status, current, total):
             pass
 
         length = data.get("summary_length", "medium")
         plain = data.get("plain_english", False)
 
-        result_path = ps.summarize_pdf(
+        result_path = pdf_summarizer.summarize_pdf(
             tmp_path,
             progress_callback=progress_cb,
             summary_length=length,
@@ -177,9 +177,6 @@ def api_pdf_summarize(data: dict):
 def api_quote(data: dict):
     """Generate a service quote."""
     try:
-        sys.path.insert(0, os.path.join(PROJECT_DIR, "modules", "quote_generator"))
-        import quote_generator as qg
-
         category = data.get("category", "General Handyman")
         customer_name = data.get("customer_name", "")
         customer_phone = data.get("customer_phone", "")
@@ -214,7 +211,7 @@ def api_quote(data: dict):
             pricing_block = "\n".join(pricing_lines)
 
         # Load template
-        template_text = qg.load_template("quote_base")
+        template_text = quote_generator.load_template("quote_base")
 
         full_prompt = f"""{template_text}
 
@@ -237,13 +234,13 @@ Use the provided pricing data exactly as given. If the pricing section is empty,
 Format the quote as a clean, ready-to-use document.
 """
 
-        quote_content = qg.call_lm_studio(full_prompt)
+        quote_content = quote_generator.call_lm_studio(full_prompt)
 
         # Save
-        qg.ensure_dir(qg.OUTPUT_DIR)
+        quote_generator.ensure_dir(quote_generator.OUTPUT_DIR)
         from datetime import datetime
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filepath = os.path.join(qg.OUTPUT_DIR, f"quote_{ts}.txt")
+        filepath = os.path.join(quote_generator.OUTPUT_DIR, f"quote_{ts}.txt")
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(quote_content)
 
@@ -261,10 +258,6 @@ def api_brain_ask(data: dict):
         return JSONResponse({"error": "Please enter a question."}, status_code=400)
 
     try:
-        bb_dir = os.path.join(PROJECT_DIR, "business_brain")
-        if bb_dir not in sys.path:
-            sys.path.insert(0, bb_dir)
-        import ask_brain
         answer = ask_brain.ask(question, use_semantic=True)
         return {"response": answer}
     except Exception as e:
@@ -275,8 +268,6 @@ def api_brain_ask(data: dict):
 def api_brain_reindex():
     """Re-index the Business Brain documents."""
     try:
-        sys.path.insert(0, os.path.join(PROJECT_DIR, "business_brain"))
-        from indexer import index_documents
         index_documents(force_reindex=True)
         return {"status": "ok", "message": "Documents re-indexed successfully."}
     except Exception as e:
@@ -289,8 +280,7 @@ async def api_new_session(request: Request):
     try:
         body = json.loads(await request.body())
         name = body.get('name', 'Untitled')
-        from chat_history import new_session as _new_session
-        session = _new_session(name=name)
+        session = new_session(name=name)
         return {"session": session}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -300,8 +290,7 @@ async def api_new_session(request: Request):
 def api_list_sessions():
     """List all chat sessions."""
     try:
-        from chat_history import get_sessions as _get_sessions
-        sessions = _get_sessions()
+        sessions = get_sessions()
         return {"sessions": sessions}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -311,8 +300,7 @@ def api_list_sessions():
 def api_clear_sessions():
     """Clear all chat sessions."""
     try:
-        from chat_history import clear_all_sessions as _clear
-        count = _clear()
+        count = clear_all_sessions()
         return {"status": "cleared", "deleted": count}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -322,8 +310,7 @@ def api_clear_sessions():
 def api_load_session(session_id: str):
     """Load a specific session."""
     try:
-        from chat_history import load_session as _load_session
-        session = _load_session(session_id)
+        session = load_session(session_id)
         if session is None:
             return JSONResponse({"error": "Session not found"}, status_code=404)
         return {"session": session}
@@ -335,12 +322,11 @@ def api_load_session(session_id: str):
 async def api_rename_session(session_id: str, request: Request):
     """Rename a session."""
     try:
-        from chat_history import rename_session as _rename
         body = json.loads(await request.body())
         name = body.get('name', '').strip()
         if not name:
             return JSONResponse({"error": "Name cannot be empty"}, status_code=400)
-        session = _rename(session_id, name)
+        session = rename_session(session_id, name)
         if session is None:
             return JSONResponse({"error": "Session not found"}, status_code=404)
         return {"session": session}
@@ -352,8 +338,7 @@ async def api_rename_session(session_id: str, request: Request):
 def api_delete_session(session_id: str):
     """Delete a session."""
     try:
-        from chat_history import delete_session as _delete
-        deleted = _delete(session_id)
+        deleted = delete_session(session_id)
         if not deleted:
             return JSONResponse({"error": "Session not found"}, status_code=404)
         return {"status": "deleted"}
@@ -369,17 +354,9 @@ def api_chat_with_session(session_id: str, data: dict):
         return JSONResponse({"error": "Empty message"}, status_code=400)
 
     try:
-        from chat_history import save_message as _save_msg
-
-        # Save user message
-        _save_msg(session_id, "user", text)
-
-        # Get chat response
-        from chat_ai.chat import ask_ai
+        save_message(session_id, "user", text)
         response = ask_ai(text)
-
-        # Save AI response
-        _save_msg(session_id, "ai", response)
+        save_message(session_id, "ai", response)
 
         return {"response": response, "session_id": session_id}
     except Exception as e:
