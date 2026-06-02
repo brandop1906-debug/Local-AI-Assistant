@@ -1,7 +1,7 @@
 {
-  "model": "qwen2.5:7b",
+  "model": "qwen2.5-7b-instruct-1m",
   "embedding_model": "text-embedding-nomic-embed-text-v1.5",
-  "llm_model": "qwen2.5:7b",
+  "llm_model": "qwen2.5-7b-instruct-1m",
   "lm_studio_url": "http://localhost:1234",
   "lm_studio_chat_url": "http://localhost:1234/v1/chat/completions",
   "documents_dir": "documents",
