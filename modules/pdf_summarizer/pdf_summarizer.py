@@ -534,7 +534,7 @@ def summarize_pdf(pdf_path: str, *, progress_callback=None, summary_length="medi
 
     # --- Step 1: Validate input ---
     pdf_path = os.path.abspath(pdf_path)
-    print(f"📄 Input PDF: {pdf_path}")
+    print(f"[PDF] Input PDF: {pdf_path}")
 
     if not os.path.isfile(pdf_path):
         raise FileNotFoundError(f"File not found: {pdf_path}")
@@ -542,8 +542,8 @@ def summarize_pdf(pdf_path: str, *, progress_callback=None, summary_length="medi
         raise ValueError(f"Expected a .pdf file, got: {pdf_path}")
 
     # --- Step 2: Check LM Studio ---
-    print(f"🤖 Model: {MODEL}")
-    print(f"🌐 LM Studio host: {LM_STUDIO_HOST}")
+    print(f"[Model] {MODEL}")
+    print(f"[Host] {LM_STUDIO_HOST}")
     print()
 
     if not check_lm_studio_running():
@@ -557,7 +557,7 @@ def summarize_pdf(pdf_path: str, *, progress_callback=None, summary_length="medi
         )
 
     # --- Step 3: Extract text ---
-    print("📖 Extracting text from PDF...")
+    print("[Extracting text from PDF...]")
     try:
         text = extract_text(pdf_path)
     except (ImportError, FileNotFoundError) as e:
@@ -574,7 +574,7 @@ def summarize_pdf(pdf_path: str, *, progress_callback=None, summary_length="medi
 
     # --- Step 4: Split into chunks ---
     chunks = split_into_chunks(text, CHUNK_SIZE)
-    print(f"📑 Split into {len(chunks)} chunk(s) (chunk size: {CHUNK_SIZE})")
+    print(f"[Split into {len(chunks)} chunk(s), size: {CHUNK_SIZE}]")
     print()
 
     # Notify GUI of chunk count
@@ -582,7 +582,7 @@ def summarize_pdf(pdf_path: str, *, progress_callback=None, summary_length="medi
         progress_callback("Chunks ready", 0, len(chunks))
 
     # --- Step 5: Summarize each chunk ---
-    print("🧠 Summarizing chunks...")
+    print("[Summarizing chunks...]")
     chunk_summaries = []
     for i, chunk in enumerate(chunks, 1):
         status_msg = f"Summarizing chunk {i}/{len(chunks)}"
@@ -592,24 +592,24 @@ def summarize_pdf(pdf_path: str, *, progress_callback=None, summary_length="medi
         try:
             summary = summarize_with_lm_studio(chunk, summary_length=summary_length)
             chunk_summaries.append(summary)
-            print("✅")
+            print("OK")
         except RuntimeError as e:
-            print(f"❌ Error: {e}")
+            print(f"[ERROR] {e}")
             raise
 
     # --- Step 6: Combine into final summary ---
     print()
     if plain_english:
-        print("🔗 Combining into final summary (plain English)...")
+        print("[Combining into final summary (plain English)...]")
     else:
-        print("🔗 Combining into final summary...")
+        print("[Combining into final summary...]")
     if progress_callback:
         progress_callback("Combining summaries", len(chunks), len(chunks))
     final_summary = combine_summaries(chunk_summaries, plain_english=plain_english)
 
     # --- Step 7: Save ---
     filepath = save_summary(final_summary)
-    print(f"✅ Done! Summary saved to: {filepath}")
+    print(f"[Done] Summary saved to: {filepath}")
     print()
 
     return filepath
