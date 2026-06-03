@@ -10,8 +10,6 @@ Provides:
 """
 
 import json
-import os
-import shutil
 import tempfile
 from pathlib import Path
 
@@ -85,50 +83,19 @@ def mock_lm_studio_chat(monkeypatch):
             mock_lm_studio_chat("Custom response")
             # ... code that calls ask_ai() ...
     """
-    import subprocess
+    import requests
 
     def _patch(content="Hello! How can I help you?"):
-        response = _make_chat_response(content)
-        json_str = json.dumps(response)
+        response_data = _make_chat_response(content)
+        mock_resp = type("MockResponse", (), {
+            "status_code": 200,
+            "text": json.dumps(response_data),
+            "json": lambda self: response_data,
+            "raise_for_status": lambda self: None,
+        })()
+        monkeypatch.setattr(requests, "post", lambda *a, **kw: mock_resp)
 
-        original_run = subprocess.run
-
-        def fake_run(cmd, **kwargs):
-            # Check if this is a call to our LM Studio endpoint
-            if any("v1/chat/completions" in str(c) for c in cmd):
-                result = type("FakeResult", (), {
-                    "returncode": 0,
-                    "stdout": json_str,
-                    "stderr": "",
-                })()
-                return result
-            return original_run(cmd, **kwargs)
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
-        return _FakeChatContext()
-
-    class _FakeChatContext:
-        def __call__(self, content="Hello! How can I help you?"):
-            response = _make_chat_response(content)
-            json_str = json.dumps(response)
-            original_run = subprocess.run
-
-            def fake_run(cmd, **kwargs):
-                if any("v1/chat/completions" in str(c) for c in cmd):
-                    result = type("FakeResult", (), {
-                        "returncode": 0,
-                        "stdout": json_str,
-                        "stderr": "",
-                    })()
-                    return result
-                return original_run(cmd, **kwargs)
-
-            monkeypatch.setattr(subprocess, "run", fake_run)
-
-        def restore(self):
-            pass  # monkeypatch handles cleanup automatically
-
-    return _patch()
+    return _patch
 
 
 @pytest.fixture()
@@ -169,22 +136,18 @@ def mock_lm_studio_embeddings(monkeypatch):
 def mock_lm_studio_unreachable(monkeypatch):
     """Monkeypatch LM Studio to simulate it being unreachable."""
     import urllib.request
-
-    original_urlopen = urllib.request.urlopen
+    import urllib.error
+    import requests
 
     def fake_urlopen(*args, **kwargs):
         raise urllib.error.URLError("Connection refused")
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
 
-    # Also patch subprocess for ask_ai
-    import subprocess
-    original_run = subprocess.run
+    def fake_post(*args, **kwargs):
+        raise requests.exceptions.ConnectionError("Connection refused")
 
-    def fake_run(*args, **kwargs):
-        raise subprocess.TimeoutExpired("cmd", 60)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(requests, "post", fake_post)
 
 
 # ---------------------------------------------------------------------------
