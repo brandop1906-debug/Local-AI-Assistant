@@ -8,7 +8,7 @@
         },
         {
             "name": "PDF Summarizer",
-            "path": "modules/pdf_summarizer/pdf_summarizer_gui.py"
+            "path": "modules/pdf_summarizer/pdf_summarizer.py"
         },
         {
             "name": "Quote Generator",
@@ -16,7 +16,7 @@
         },
 {
             "name": "Chat AI",
-            "path": "modules/chat_ai/gui.py"
+            "path": "modules/chat_ai/chat.py"
         }
     ]
 }
