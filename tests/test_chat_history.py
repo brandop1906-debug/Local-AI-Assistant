@@ -315,3 +315,64 @@ class TestGetSessionMessageCount:
     def test_returns_zero_for_missing_session(self, chat_history_dir):
         """Should return 0 for a non-existent session."""
         assert chat_history.get_session_message_count("nonexistent") == 0
+
+
+# ---------------------------------------------------------------------------
+# Session pruning (MAX_SESSIONS)
+# ---------------------------------------------------------------------------
+
+class TestSessionPruning:
+    def test_sessions_capped_at_max(self, chat_history_dir):
+        """Creating sessions beyond MAX_SESSIONS should delete the oldest."""
+        limit = chat_history.MAX_SESSIONS
+        for i in range(limit + 5):
+            chat_history.new_session(name=f"Session {i}")
+        sessions = chat_history.get_sessions()
+        assert len(sessions) == limit
+
+    def test_oldest_sessions_removed(self, chat_history_dir):
+        """The sessions kept after pruning should be the most recently updated."""
+        limit = chat_history.MAX_SESSIONS
+        first_id = chat_history.new_session(name="First Ever")["id"]
+        for i in range(limit):
+            chat_history.new_session(name=f"Session {i}")
+        session_ids = {s["id"] for s in chat_history.get_sessions()}
+        assert first_id not in session_ids
+
+    def test_under_limit_no_pruning(self, chat_history_dir):
+        """Creating fewer sessions than the cap should not delete any."""
+        for i in range(5):
+            chat_history.new_session(name=f"Session {i}")
+        assert len(chat_history.get_sessions()) == 5
+
+
+# ---------------------------------------------------------------------------
+# Message trimming (MAX_MESSAGES_PER_SESSION)
+# ---------------------------------------------------------------------------
+
+class TestMessageTrimming:
+    def test_messages_capped_at_max(self, chat_history_dir):
+        """Adding messages beyond MAX_MESSAGES_PER_SESSION should trim the oldest."""
+        limit = chat_history.MAX_MESSAGES_PER_SESSION
+        session = chat_history.new_session(name="Long Chat")
+        for i in range(limit + 10):
+            chat_history.save_message(session["id"], "user", f"Message {i}")
+        count = chat_history.get_session_message_count(session["id"])
+        assert count == limit
+
+    def test_oldest_messages_trimmed(self, chat_history_dir):
+        """The messages kept after trimming should be the most recent ones."""
+        limit = chat_history.MAX_MESSAGES_PER_SESSION
+        session = chat_history.new_session(name="Trim Test")
+        for i in range(limit + 5):
+            chat_history.save_message(session["id"], "user", f"Message {i}")
+        loaded = chat_history.load_session(session["id"])
+        first_content = loaded["messages"][0]["content"]
+        assert first_content == "Message 5"
+
+    def test_under_limit_no_trimming(self, chat_history_dir):
+        """Adding fewer messages than the cap should not trim any."""
+        session = chat_history.new_session(name="Short Chat")
+        for i in range(5):
+            chat_history.save_message(session["id"], "user", f"Message {i}")
+        assert chat_history.get_session_message_count(session["id"]) == 5

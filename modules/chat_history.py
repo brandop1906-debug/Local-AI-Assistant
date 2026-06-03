@@ -28,6 +28,9 @@ _MODULE_DIR = Path(__file__).resolve().parent
 _PROJECT_ROOT = _MODULE_DIR.parent
 CHAT_HISTORY_DIR = _PROJECT_ROOT / ".local" / "chat_history"
 
+MAX_SESSIONS = 100
+MAX_MESSAGES_PER_SESSION = 200
+
 
 def _ensure_storage_dir():
     """Create the storage directory if it doesn't exist."""
@@ -42,6 +45,15 @@ def _session_file_path(session_id: str) -> Path:
 def _iso_now() -> str:
     """Return current time as an ISO-8601 string."""
     return datetime.now(timezone.utc).isoformat()
+
+
+def _prune_old_sessions() -> None:
+    """Delete oldest sessions when total count exceeds MAX_SESSIONS."""
+    sessions = get_sessions()  # sorted newest-first
+    if len(sessions) <= MAX_SESSIONS:
+        return
+    for session in sessions[MAX_SESSIONS:]:
+        delete_session(session["id"])
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +75,7 @@ def new_session(name: str = "Untitled", messages: list = None) -> dict:
     filepath = _session_file_path(session_id)
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(session, f, indent=2, ensure_ascii=False)
+    _prune_old_sessions()
     return session
 
 
@@ -107,6 +120,10 @@ def save_message(session_id: str, role: str, content: str) -> dict | None:
         "timestamp": _iso_now(),
     })
     session["updated_at"] = _iso_now()
+
+    # Trim oldest messages if session exceeds the cap
+    if len(session["messages"]) > MAX_MESSAGES_PER_SESSION:
+        session["messages"] = session["messages"][-MAX_MESSAGES_PER_SESSION:]
 
     # Auto-name the session from the first user message
     if session["name"] == "Untitled":
