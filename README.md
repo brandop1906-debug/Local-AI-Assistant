@@ -57,11 +57,11 @@ business_brain/     → Document indexing & semantic search
 
 Each module has its own `config.json`. The root `config.json` controls:
 
-- **LM Studio settings** (`lm_studio_url`, `lm_studio_chat_url`, `embedding_model`)
-- **Active modules** (which modules are enabled in the launcher)
-- **Default model** (`model`, `temperature`, `max_tokens`)
+- **App name** (`app_name`)
+- **Default model** (`model`)
+- **Active modules** (which modules are registered in the launcher)
 
-Each module's `config.json` overrides root settings for that specific module.
+Each module's `config.json` holds its own LM Studio URL, model, temperature, and max token settings.
 
 ### Config files
 
@@ -76,7 +76,12 @@ Each module's `config.json` overrides root settings for that specific module.
 
 ## Chat History
 
-Sessions are stored in `.local/chat_history/` as individual JSON files.
+Sessions are stored in `.local/chat_history/` as individual JSON files. Limits are enforced automatically:
+
+- Max **100 sessions** — oldest session deleted when exceeded
+- Max **200 messages per session** — oldest messages trimmed on append
+
+Both limits are configurable via `MAX_SESSIONS` and `MAX_MESSAGES_PER_SESSION` in `modules/chat_history.py`.
 
 ## Logs
 
