@@ -43,9 +43,9 @@ from modules.chat_history import (
     rename_session,
     delete_session,
 )
-from modules import email_assistant
-from modules import pdf_summarizer
-from modules import quote_generator
+from modules.email_assistant import email_assistant as email_assistant_mod
+from modules.pdf_summarizer import pdf_summarizer as pdf_summarizer_mod
+from modules.quote_generator import quote_generator as quote_generator_mod
 from business_brain import ask_brain
 from business_brain.indexer import index_documents
 
@@ -100,20 +100,20 @@ def api_email(data: dict):
         return JSONResponse({"error": "Please describe the email you want to write."}, status_code=400)
 
     try:
-        template_text = email_assistant.load_template(tone)
+        template_text = email_assistant_mod.load_template(tone)
         full_prompt = (
             f"{template_text}\n\n"
             f"Email topic / summary:\n{topic}\n\n"
             f"Please write the complete email based on the topic above.\n"
             f"Include a subject line and the email body."
         )
-        email_content = email_assistant.call_lm_studio(full_prompt)
+        email_content = email_assistant_mod.call_lm_studio(full_prompt)
 
         # Save to output folder
-        email_assistant.ensure_dir(email_assistant.OUTPUT_DIR)
+        email_assistant_mod.ensure_dir(email_assistant_mod.OUTPUT_DIR)
         from datetime import datetime
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filepath = os.path.join(email_assistant.OUTPUT_DIR, f"email_{ts}.txt")
+        filepath = os.path.join(email_assistant_mod.OUTPUT_DIR, f"email_{ts}.txt")
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(email_content)
 
@@ -146,7 +146,7 @@ def api_pdf_summarize(data: dict):
         length = data.get("summary_length", "medium")
         plain = data.get("plain_english", False)
 
-        result_path = pdf_summarizer.summarize_pdf(
+        result_path = pdf_summarizer_mod.summarize_pdf(
             tmp_path,
             progress_callback=progress_cb,
             summary_length=length,
@@ -211,7 +211,7 @@ def api_quote(data: dict):
             pricing_block = "\n".join(pricing_lines)
 
         # Load template
-        template_text = quote_generator.load_template("quote_base")
+        template_text = quote_generator_mod.load_template("quote_base")
 
         full_prompt = f"""{template_text}
 
@@ -234,13 +234,13 @@ Use the provided pricing data exactly as given. If the pricing section is empty,
 Format the quote as a clean, ready-to-use document.
 """
 
-        quote_content = quote_generator.call_lm_studio(full_prompt)
+        quote_content = quote_generator_mod.call_lm_studio(full_prompt)
 
         # Save
-        quote_generator.ensure_dir(quote_generator.OUTPUT_DIR)
+        quote_generator_mod.ensure_dir(quote_generator_mod.OUTPUT_DIR)
         from datetime import datetime
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filepath = os.path.join(quote_generator.OUTPUT_DIR, f"quote_{ts}.txt")
+        filepath = os.path.join(quote_generator_mod.OUTPUT_DIR, f"quote_{ts}.txt")
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(quote_content)
 
