@@ -16,6 +16,7 @@ import os
 import tempfile
 
 import pytest
+import requests
 
 from business_brain import ask_brain
 
@@ -218,6 +219,16 @@ class TestConfigHelpers:
 # generate_answer
 # ---------------------------------------------------------------------------
 
+def _mock_post_response(data: dict, status_code: int = 200):
+    """Build a minimal mock requests.Response for ask_brain tests."""
+    return type("MockResponse", (), {
+        "status_code": status_code,
+        "text": json.dumps(data),
+        "json": lambda self: data,
+        "raise_for_status": lambda self: None,
+    })()
+
+
 class TestGenerateAnswer:
     def test_generates_answer_with_lm_studio(self, monkeypatch):
         """Should send context to LM Studio and return the answer."""
@@ -226,19 +237,7 @@ class TestGenerateAnswer:
             {"text": "Additional details."},
         ]
         mock_response = {"choices": [{"message": {"content": "The answer is 42."}}]}
-
-        def mock_urlopen(req, timeout=None):
-            class FakeResp:
-                status = 200
-                def read(self):
-                    return json.dumps(mock_response).encode("utf-8")
-                def __enter__(self):
-                    return self
-                def __exit__(self, *a):
-                    pass
-            return FakeResp()
-
-        monkeypatch.setattr(ask_brain.urllib.request, "urlopen", mock_urlopen)
+        monkeypatch.setattr(requests, "post", lambda *a, **kw: _mock_post_response(mock_response))
 
         answer = ask_brain.generate_answer(
             "What is it?",
@@ -249,10 +248,10 @@ class TestGenerateAnswer:
 
     def test_handles_lm_studio_error(self, monkeypatch):
         """Should return an error message when LM Studio is unreachable."""
-        def raise_urlerror(*args, **kwargs):
-            raise ask_brain.urllib.error.URLError("Connection refused")
+        def raise_conn_error(*args, **kwargs):
+            raise requests.exceptions.ConnectionError("Connection refused")
 
-        monkeypatch.setattr(ask_brain.urllib.request, "urlopen", raise_urlerror)
+        monkeypatch.setattr(requests, "post", raise_conn_error)
 
         answer = ask_brain.generate_answer(
             "What?",
@@ -264,19 +263,8 @@ class TestGenerateAnswer:
     def test_handles_empty_response(self, monkeypatch):
         """Should handle empty model response."""
         mock_response = {"choices": [{"message": {"content": ""}}]}
+        monkeypatch.setattr(requests, "post", lambda *a, **kw: _mock_post_response(mock_response))
 
-        def mock_urlopen(req, timeout=None):
-            class FakeResp:
-                status = 200
-                def read(self):
-                    return json.dumps(mock_response).encode("utf-8")
-                def __enter__(self):
-                    return self
-                def __exit__(self, *a):
-                    pass
-            return FakeResp()
-
-        monkeypatch.setattr(ask_brain.urllib.request, "urlopen", mock_urlopen)
         answer = ask_brain.generate_answer(
             "What?",
             [{"text": "context"}],
@@ -322,10 +310,10 @@ class TestAsk:
         monkeypatch.setattr(ask_brain, "load_index", mock_load)
 
         # Make semantic_search fail (LM Studio unreachable)
-        def raise_urlerror(*args, **kwargs):
-            raise ask_brain.urllib.error.URLError("No connection")
+        def raise_conn_error(*args, **kwargs):
+            raise requests.exceptions.ConnectionError("No connection")
 
-        monkeypatch.setattr(ask_brain.urllib.request, "urlopen", raise_urlerror)
+        monkeypatch.setattr(requests, "post", raise_conn_error)
 
         # Mock generate_answer to return a fixed answer
         monkeypatch.setattr(ask_brain, "generate_answer", lambda q, chunks, url: "Fallback answer")

@@ -9,8 +9,8 @@ Supports two modes:
 import os
 import json
 import sys
-import urllib.request
-import urllib.error
+
+import requests
 
 from utils.logging_config import get_logger
 
@@ -82,19 +82,15 @@ def semantic_search(query: str, index: dict, embedding_model: str, top_k: int = 
 
     # Embed the query
     try:
-        payload = json.dumps({"model": embedding_model, "input": query}).encode("utf-8")
-        req = urllib.request.Request(
-            endpoint, data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
+        payload = {"model": embedding_model, "input": query}
+        resp = requests.post(endpoint, json=payload, timeout=60)
+        resp.raise_for_status()
+        result = resp.json()
         query_emb = result["data"][0]["embedding"]
-    except (urllib.error.URLError, TimeoutError) as exc:
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
         logger.warning("LM Studio connection failed: %s — falling back to keyword search", exc)
         return keyword_search(query, index, top_k)
-    except (json.JSONDecodeError, KeyError, IndexError) as exc:
+    except (requests.exceptions.HTTPError, ValueError, KeyError, IndexError) as exc:
         logger.warning("Could not parse LM Studio response: %s — falling back to keyword search", exc)
         return keyword_search(query, index, top_k)
 
@@ -179,15 +175,9 @@ def generate_answer(query: str, context_chunks: list, lm_studio_url: str = None)
     }
 
     try:
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            lm_studio_url,
-            data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
+        resp = requests.post(lm_studio_url, json=payload, timeout=120)
+        resp.raise_for_status()
+        result = resp.json()
         # Extract the assistant's response
         choice = result["choices"][0]["message"]
         answer = choice.get("content", "").strip()
@@ -212,12 +202,12 @@ def generate_answer(query: str, context_chunks: list, lm_studio_url: str = None)
         if not answer:
             return "The model returned an empty response. Please try again."
         return answer
-    except (urllib.error.URLError, TimeoutError) as exc:
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
         return (
             f"Could not reach LM Studio at {lm_studio_url}: {exc}. "
             "Please ensure LM Studio is running with a chat model loaded."
         )
-    except (json.JSONDecodeError, KeyError, IndexError, TypeError) as exc:
+    except (requests.exceptions.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
         return f"Error parsing LLM response: {exc}"
     except Exception as exc:
         return f"Unexpected error calling LLM: {exc}"
