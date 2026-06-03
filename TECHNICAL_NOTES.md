@@ -10,11 +10,9 @@ A comprehensive test suite was added covering FastAPI routes, chat history CRUD,
 
 ---
 
-### 2. subprocess + curl for HTTP calls
+### 2. subprocess + curl for HTTP calls ✅ DONE
 
-The LM Studio HTTP calls use `subprocess + curl` rather than the `requests` library (already a project dependency). `requests` would be cleaner and easier to test. `httpx` would also work well given the FastAPI/uvicorn stack (async-compatible).
-
-Status: open.
+`modules/chat_ai/chat.py` now uses `requests.post()` for all LM Studio calls. Error handling uses `requests.exceptions.Timeout` and `requests.exceptions.ConnectionError`. Tests updated to mock `requests.post` instead of `subprocess.run`.
 
 ---
 

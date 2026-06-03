@@ -19,10 +19,10 @@ Usage:
 
 import json
 import os
-import subprocess
 import sys
-import time
 from pathlib import Path
+
+import requests
 
 # Import the context builder (same directory)
 from modules.chat_ai.context import build_rag_context, inject_context
@@ -117,7 +117,7 @@ def ask_ai(user_message: str, include_context: bool = True) -> str:
         1. Loads config.json from the chat_ai/ directory.
         2. Builds project context (business docs, modules, pricing, FAQs).
         3. Injects context into the system prompt.
-        4. Sends the request to LM Studio's local server via subprocess (curl).
+        4. Sends the request to LM Studio's local server via requests.
         5. Parses and returns the model's text response.
 
     Args:
@@ -132,7 +132,6 @@ def ask_ai(user_message: str, include_context: bool = True) -> str:
         FileNotFoundError: If config.json is missing.
         json.JSONDecodeError: If config.json is invalid.
         RuntimeError: If LM Studio is unreachable or returns an error.
-        subprocess.TimeoutExpired: If the API call times out.
     """
     # Step 1 — Load configuration
     config = _load_config()
@@ -150,62 +149,35 @@ def ask_ai(user_message: str, include_context: bool = True) -> str:
     api_url = _build_api_url(config)
     payload = _build_payload(user_message, config, system_message)
 
-    # Step 3 — Send the request using subprocess + curl
-    # We use curl because it is available on Windows by default (Win10+)
-    # and avoids needing the `requests` library as an extra dependency.
+    # Step 3 — Send the request to LM Studio
     try:
-        # Build the curl command as a list (safer than shell=True)
-        cmd = [
-            "curl",
-            "-X", "POST",
-            api_url,
-            "-H", "Content-Type: application/json",
-            "-d", json.dumps(payload),
-            "--max-time", "60",          # 60-second timeout
-            "-s",                         # silent mode (no progress bar)
-        ]
-
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",           # force UTF-8 — curl returns UTF-8
-            timeout=65,                 # slightly longer than curl's internal timeout
-        )
-
-    except subprocess.TimeoutExpired:
+        response = requests.post(api_url, json=payload, timeout=60)
+        response.raise_for_status()
+    except requests.exceptions.Timeout:
         raise RuntimeError(
             "API call timed out. Is LM Studio running and is the model loaded? "
             f"Expected server at {api_url}"
         )
-    except FileNotFoundError:
+    except requests.exceptions.ConnectionError:
         raise RuntimeError(
-            "curl not found. Please ensure curl is installed on your system "
-            "(it ships with Windows 10/11 by default)."
+            f"Cannot connect to LM Studio at {api_url}. "
+            "Ensure LM Studio is running with a model loaded."
+        )
+    except requests.exceptions.HTTPError as exc:
+        raise RuntimeError(
+            f"LM Studio returned HTTP {exc.response.status_code}: "
+            f"{exc.response.text[:500]}"
         )
 
-    # Step 4 — Check for curl-level errors (non-zero exit code)
-    if result.returncode != 0:
-        stderr = result.stderr.strip() if result.stderr else "(no output)"
-        raise RuntimeError(
-            f"curl failed (exit code {result.returncode}): {stderr}\n"
-            f"Is LM Studio running? Is the correct model loaded? "
-            f"Server URL: {api_url}"
-        )
-
-    # Step 5 — Parse the JSON response from LM Studio
-    stdout = result.stdout.strip()
-    if not stdout:
-        raise RuntimeError("LM Studio returned an empty response.")
-
+    # Step 4 — Parse the JSON response from LM Studio
     try:
-        response_data = json.loads(stdout)
-    except json.JSONDecodeError:
+        response_data = response.json()
+    except ValueError:
         raise RuntimeError(
-            f"LM Studio returned invalid JSON:\n{stdout[:500]}"
+            f"LM Studio returned invalid JSON:\n{response.text[:500]}"
         )
 
-    # Step 6 — Extract the text content from the response
+    # Step 5 — Extract the text content from the response
     try:
         choices = response_data["choices"]
         if not choices:
@@ -213,7 +185,7 @@ def ask_ai(user_message: str, include_context: bool = True) -> str:
         content = choices[0]["message"]["content"]
     except KeyError as exc:
         raise RuntimeError(
-            f"Unexpected response format from LM Studio:\n{stdout[:500]}\n"
+            f"Unexpected response format from LM Studio:\n{response.text[:500]}\n"
             f"Missing key: {exc}"
         )
 

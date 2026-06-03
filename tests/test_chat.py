@@ -11,9 +11,9 @@ Covers:
 """
 
 import json
-import subprocess
 
 import pytest
+import requests
 
 from modules.chat_ai import chat
 
@@ -125,123 +125,77 @@ class TestBuildPayload:
 # ask_ai
 # ---------------------------------------------------------------------------
 
+def _mock_response(data: dict, status_code: int = 200):
+    """Build a minimal mock requests.Response."""
+    body = json.dumps(data)
+    resp = type("MockResponse", (), {
+        "status_code": status_code,
+        "text": body,
+        "json": lambda self: data,
+        "raise_for_status": lambda self: None,
+    })()
+    return resp
+
+
 class TestAskAi:
     def test_returns_response_on_success(self, monkeypatch):
         """Should return the AI response on a successful call."""
-        mock_response = {
+        mock_data = {
             "model": "qwen:7b",
             "choices": [{"message": {"content": "Hello! How can I help?"}}],
         }
-
-        def fake_run(cmd, **kwargs):
-            result = type("FakeResult", (), {
-                "returncode": 0,
-                "stdout": json.dumps(mock_response),
-                "stderr": "",
-            })()
-            return result
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        monkeypatch.setattr(requests, "post", lambda *a, **kw: _mock_response(mock_data))
         result = chat.ask_ai("Hello")
         assert result == "Hello! How can I help?"
 
     def test_raises_on_timeout(self, monkeypatch):
         """Should raise RuntimeError on API timeout."""
-        def raise_timeout(cmd, **kwargs):
-            raise subprocess.TimeoutExpired(cmd, 60)
-        monkeypatch.setattr(subprocess, "run", raise_timeout)
+        def raise_timeout(*args, **kwargs):
+            raise requests.exceptions.Timeout()
+        monkeypatch.setattr(requests, "post", raise_timeout)
         with pytest.raises(RuntimeError, match="API call timed out"):
             chat.ask_ai("Hello")
 
-    def test_raises_on_curl_failure(self, monkeypatch):
-        """Should raise RuntimeError when curl fails."""
-        def fake_run(cmd, **kwargs):
-            result = type("FakeResult", (), {
-                "returncode": 1,
-                "stdout": "",
-                "stderr": "Connection refused",
-            })()
-            return result
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
-        with pytest.raises(RuntimeError, match="curl failed"):
-            chat.ask_ai("Hello")
-
-    def test_raises_on_empty_response(self, monkeypatch):
-        """Should raise RuntimeError on empty LM Studio response."""
-        def fake_run(cmd, **kwargs):
-            result = type("FakeResult", (), {
-                "returncode": 0,
-                "stdout": "",
-                "stderr": "",
-            })()
-            return result
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
-        with pytest.raises(RuntimeError, match="empty response"):
+    def test_raises_on_connection_error(self, monkeypatch):
+        """Should raise RuntimeError when LM Studio is unreachable."""
+        def raise_conn(*args, **kwargs):
+            raise requests.exceptions.ConnectionError("Connection refused")
+        monkeypatch.setattr(requests, "post", raise_conn)
+        with pytest.raises(RuntimeError, match="Cannot connect to LM Studio"):
             chat.ask_ai("Hello")
 
     def test_raises_on_invalid_json(self, monkeypatch):
         """Should raise RuntimeError on invalid JSON response."""
-        def fake_run(cmd, **kwargs):
-            result = type("FakeResult", (), {
-                "returncode": 0,
-                "stdout": "not json at all",
-                "stderr": "",
-            })()
-            return result
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        resp = type("MockResponse", (), {
+            "status_code": 200,
+            "text": "not json at all",
+            "json": lambda self: (_ for _ in ()).throw(ValueError("No JSON")),
+            "raise_for_status": lambda self: None,
+        })()
+        monkeypatch.setattr(requests, "post", lambda *a, **kw: resp)
         with pytest.raises(RuntimeError, match="invalid JSON"):
             chat.ask_ai("Hello")
 
     def test_raises_on_missing_choices(self, monkeypatch):
         """Should raise RuntimeError when choices is missing."""
-        mock_response = {"model": "qwen:7b"}  # no "choices" key
-
-        def fake_run(cmd, **kwargs):
-            result = type("FakeResult", (), {
-                "returncode": 0,
-                "stdout": json.dumps(mock_response),
-                "stderr": "",
-            })()
-            return result
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        mock_data = {"model": "qwen:7b"}  # no "choices" key
+        monkeypatch.setattr(requests, "post", lambda *a, **kw: _mock_response(mock_data))
         with pytest.raises(RuntimeError, match="Unexpected response format"):
             chat.ask_ai("Hello")
 
     def test_raises_on_empty_choices(self, monkeypatch):
         """Should raise RuntimeError when choices is empty."""
-        mock_response = {"choices": []}
-
-        def fake_run(cmd, **kwargs):
-            result = type("FakeResult", (), {
-                "returncode": 0,
-                "stdout": json.dumps(mock_response),
-                "stderr": "",
-            })()
-            return result
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        mock_data = {"choices": []}
+        monkeypatch.setattr(requests, "post", lambda *a, **kw: _mock_response(mock_data))
         with pytest.raises(RuntimeError, match="no choices"):
             chat.ask_ai("Hello")
 
     def test_ask_ai_with_include_context_false(self, monkeypatch):
         """Should work without RAG context when include_context=False."""
-        mock_response = {
+        mock_data = {
             "model": "qwen:7b",
             "choices": [{"message": {"content": "Simple response"}}],
         }
-
-        def fake_run(cmd, **kwargs):
-            result = type("FakeResult", (), {
-                "returncode": 0,
-                "stdout": json.dumps(mock_response),
-                "stderr": "",
-            })()
-            return result
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        monkeypatch.setattr(requests, "post", lambda *a, **kw: _mock_response(mock_data))
         result = chat.ask_ai("Hello", include_context=False)
         assert result == "Simple response"
