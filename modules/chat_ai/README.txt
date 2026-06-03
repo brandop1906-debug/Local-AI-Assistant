@@ -29,12 +29,6 @@ print(response)
 response = ask_ai("Hello!", include_context=False)
 ```
 
-### GUI
-
-```bash
-python -m chat_ai.gui
-```
-
 ### CLI Test
 
 ```bash
@@ -100,5 +94,4 @@ Edit `config.json`:
 | `chat.py` | Core ask_ai() function — sends messages to LM Studio |
 | `rag.py` | RAG retrieval — semantic search over business_brain index |
 | `context.py` | Context building and injection |
-| `gui.py` | Tkinter chat interface |
 | `config.json` | Configuration (model, temperature, RAG settings) |

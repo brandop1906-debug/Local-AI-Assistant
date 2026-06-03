@@ -14,6 +14,8 @@ import json
 import os
 import sys
 import threading
+
+import requests
 import webview
 
 # ---------------------------------------------------------------------------
@@ -83,10 +85,12 @@ def api_chat(data: dict):
     if not text:
         return JSONResponse({"error": "Empty message"}, status_code=400)
 
+    logger.info("POST /api/chat | %d chars", len(text))
     try:
         response = ask_ai(text)
         return {"response": response}
     except Exception as e:
+        logger.error("POST /api/chat error: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -99,6 +103,7 @@ def api_email(data: dict):
     if not topic:
         return JSONResponse({"error": "Please describe the email you want to write."}, status_code=400)
 
+    logger.info("POST /api/email | tone=%s", tone)
     try:
         template_text = email_assistant_mod.load_template(tone)
         full_prompt = (
@@ -119,6 +124,7 @@ def api_email(data: dict):
 
         return {"response": email_content, "filepath": filepath}
     except Exception as e:
+        logger.error("POST /api/email error: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -131,6 +137,7 @@ def api_pdf_summarize(data: dict):
     if not file_data:
         return JSONResponse({"error": "Please select a PDF file."}, status_code=400)
 
+    logger.info("POST /api/pdf/summarize | file=%s", filename)
     # Write the base64 file to a temp location
     import base64, tempfile
     tmp_dir = tempfile.mkdtemp(prefix="localai_pdf_")
@@ -163,6 +170,7 @@ def api_pdf_summarize(data: dict):
             content=_json.loads(_json.dumps({"response": summary, "filepath": result_path}, ensure_ascii=True))
         )
     except Exception as e:
+        logger.error("POST /api/pdf/summarize error: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
     finally:
         # Clean up temp file
@@ -176,6 +184,7 @@ def api_pdf_summarize(data: dict):
 @app.post("/api/quote")
 def api_quote(data: dict):
     """Generate a service quote."""
+    logger.info("POST /api/quote | category=%s", data.get("category", "General Handyman"))
     try:
         category = data.get("category", "General Handyman")
         customer_name = data.get("customer_name", "")
@@ -246,6 +255,7 @@ Format the quote as a clean, ready-to-use document.
 
         return {"response": quote_content, "filepath": filepath}
     except Exception as e:
+        logger.error("POST /api/quote error: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -257,20 +267,25 @@ def api_brain_ask(data: dict):
     if not question:
         return JSONResponse({"error": "Please enter a question."}, status_code=400)
 
+    logger.info("POST /api/brain/ask | %d chars", len(question))
     try:
         answer = ask_brain.ask(question, use_semantic=True)
         return {"response": answer}
     except Exception as e:
+        logger.error("POST /api/brain/ask error: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.post("/api/brain/reindex")
 def api_brain_reindex():
     """Re-index the Business Brain documents."""
+    logger.info("POST /api/brain/reindex")
     try:
         index_documents(force_reindex=True)
+        logger.info("Reindex complete")
         return {"status": "ok", "message": "Documents re-indexed successfully."}
     except Exception as e:
+        logger.error("POST /api/brain/reindex error: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -366,22 +381,18 @@ def api_chat_with_session(session_id: str, data: dict):
 @app.get("/api/health")
 def api_health():
     """Health check — verifies LM Studio is reachable."""
-    try:
-        import urllib.request
-        endpoints = [
-            "http://127.0.0.1:1234/v1/models",
-            "http://127.0.0.1:1234/health",
-        ]
-        for url in endpoints:
-            try:
-                resp = urllib.request.urlopen(url, timeout=5)
-                if resp.status == 200:
-                    return {"lm_studio": "ok"}
-            except Exception:
-                continue
-        return {"lm_studio": "unreachable", "message": "LM Studio not detected. Start it and try again."}
-    except Exception as e:
-        return {"lm_studio": "error", "message": str(e)}
+    endpoints = [
+        "http://127.0.0.1:1234/v1/models",
+        "http://127.0.0.1:1234/health",
+    ]
+    for url in endpoints:
+        try:
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                return {"lm_studio": "ok"}
+        except Exception:
+            continue
+    return {"lm_studio": "unreachable", "message": "LM Studio not detected. Start it and try again."}
 
 
 # ---------------------------------------------------------------------------

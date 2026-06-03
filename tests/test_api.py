@@ -32,13 +32,9 @@ def client():
 class TestHealthCheck:
     def test_health_returns_ok_when_lm_studio_reachable(self, client):
         """Should return lm_studio: ok when LM Studio responds."""
-        with patch("urllib.request.urlopen") as mock_urlopen:
-            mock_resp = MagicMock()
-            mock_resp.status = 200
-            mock_urlopen.return_value = mock_resp
-            mock_urlopen.__enter__ = lambda s: mock_resp
-            mock_urlopen.__exit__ = lambda s, *a: None
-
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        with patch("requests.get", return_value=mock_resp):
             response = client.get("/api/health")
             assert response.status_code == 200
             data = response.json()
@@ -46,7 +42,7 @@ class TestHealthCheck:
 
     def test_health_returns_unreachable_when_lm_studio_down(self, client):
         """Should return lm_studio: unreachable when LM Studio is down."""
-        with patch("urllib.request.urlopen", side_effect=Exception("Connection refused")):
+        with patch("requests.get", side_effect=Exception("Connection refused")):
             response = client.get("/api/health")
             assert response.status_code == 200
             data = response.json()
@@ -54,7 +50,7 @@ class TestHealthCheck:
 
     def test_health_returns_unreachable_on_exception(self, client):
         """Should return lm_studio: unreachable when an unexpected exception occurs."""
-        with patch("urllib.request.urlopen", side_effect=RuntimeError("Oops")):
+        with patch("requests.get", side_effect=RuntimeError("Oops")):
             response = client.get("/api/health")
             assert response.status_code == 200
             data = response.json()
